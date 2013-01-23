@@ -8,6 +8,21 @@ from sqlite_widget import Ui_SqliteWidget
 
 
 class SqliteWidget(QtGui.QWidget):
+
+	FILTER=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
+	def dump(self, src, length=8, limit=10000):
+		N=0; result=''
+		while src:
+			s,src = src[:length],src[length:]
+			hexa = ' '.join(["%02X"%ord(x) for x in s])
+			s = s.translate(self.FILTER)
+			result += "%04X   %-*s   %s\n" % (N, length*3, hexa, s)
+			N+=length
+			if (len(result) > limit):
+				src = "";
+				result += "(analysis limit reached after %i bytes)"%limit
+		return result
+
 	def __init__(self, fileName = None):
 		QtGui.QWidget.__init__(self)
 		
@@ -52,6 +67,7 @@ class SqliteWidget(QtGui.QWidget):
 			print("\nUnexpected error: %s"%sys.exc_info()[1])
 			self.close()
 		
+		
 	def tableClicked(self):
 		currentSelectedElement = self.ui.tablesList.currentItem()
 		if (currentSelectedElement): pass
@@ -74,6 +90,7 @@ class SqliteWidget(QtGui.QWidget):
 				self.ui.tableContent.setColumnCount(len(seltable_fields))
 				
 				# header (fields names)
+				fieldsNames = []
 				index = 0
 				for record in seltable_fields:
 				
@@ -86,6 +103,7 @@ class SqliteWidget(QtGui.QWidget):
 					newItem = QtGui.QTableWidgetItem(value)
 					self.ui.tableContent.setHorizontalHeaderItem(index, newItem)
 					index = index + 1
+					fieldsNames.append(str(record[1]))
 				
 				seltablecur.execute("SELECT * FROM %s" % (tableName))
 				records = seltablecur.fetchall();
@@ -97,8 +115,50 @@ class SqliteWidget(QtGui.QWidget):
 				
 					columnIndex = 0
 					for field in record:
-						newItem = QtGui.QTableWidgetItem(str(field))
+					
+						#import unicodedata
+						try:
+							value = str(field)
+						except:
+							try:
+								value = str(field).encode("utf8", "replace") + " (decoded unicode)"
+							except:
+								value = "Unreadable (data)"
+					
+						#maybe an image?
+						if (fieldsNames[columnIndex] == "data"):
+							dataMagic = magic.whatis(value)
+
+							if (dataMagic.partition("/")[0] == "image"):			
+							
+								#im = Image.open(StringIO.StringIO(value))
+								#tkim = ImageTk.PhotoImage(im)
+								#photoImages.append(tkim)
+								#maintext("\n ")
+								#textarea.image_create(END, image=tkim)
+								
+								qba = QtCore.QByteArray()
+								qba.append(value)
+								qimg = QtGui.QImage.fromData(qba)
+								qpix = QtGui.QPixmap.fromImage(qimg)
+								qicon = QtGui.QIcon(qpix)								
+								
+								newItem = QtGui.QTableWidgetItem(dataMagic)
+								newItem.setIcon(qicon)
+								
+								self.ui.tableContent.setRowHeight(rowIndex, 100)
+								self.ui.tableContent.setIconSize(QtCore.QSize(100,100))
+								
+							else:	
+								text = self.dump(value, 16, 1000)
+								newItem = QtGui.QTableWidgetItem(text)					
+					
+						# not data => text
+						else:					
+							newItem = QtGui.QTableWidgetItem(value)
+						
 						self.ui.tableContent.setItem(rowIndex, columnIndex, newItem)
+						
 						columnIndex = columnIndex + 1						
 					
 					rowIndex = rowIndex + 1
