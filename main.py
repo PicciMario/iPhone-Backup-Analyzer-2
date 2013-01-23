@@ -5,9 +5,40 @@ import mbdbdecoding, plistutils, magic
 
 from main_window import Ui_MainWindow
 from sqlite_widget import Ui_SqliteWidget
+from image_widget import Ui_ImageWidget
+
+
+class ImageWidget(QtGui.QWidget):
+
+	def __init__(self, fileName = None):
+		QtGui.QWidget.__init__(self)
+		
+		self.ui = Ui_ImageWidget()
+		self.ui.setupUi(self)
+		
+		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		
+		self.fileName = fileName
+		
+		# render image
+		scene = QtGui.QGraphicsScene() 
+
+		pic = QtGui.QPixmap(fileName).scaled(self.ui.imageView.size(), QtCore.Qt.KeepAspectRatio)
+		scene.addItem(QtGui.QGraphicsPixmapItem(pic)) 
+		view = self.ui.imageView 
+		view.setScene(scene) 
+		view.setRenderHint(QtGui.QPainter.Antialiasing) 
+		view.show() 		
+			
+	def setTitle(self, title):
+		self.setWindowTitle(title)
 
 
 class SqliteWidget(QtGui.QWidget):
+
+	itemsPerScreen = 100
+	pageNumber = 0
+	currentTableOnDisplay = None
 
 	FILTER=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
 	def dump(self, src, length=8, limit=10000):
@@ -23,6 +54,7 @@ class SqliteWidget(QtGui.QWidget):
 				result += "(analysis limit reached after %i bytes)"%limit
 		return result
 
+
 	def __init__(self, fileName = None):
 		QtGui.QWidget.__init__(self)
 		
@@ -32,6 +64,11 @@ class SqliteWidget(QtGui.QWidget):
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 		
 		QtCore.QObject.connect(self.ui.tablesList, QtCore.SIGNAL("itemSelectionChanged()"), self.tableClicked)
+		QtCore.QObject.connect(self.ui.buttonLeft, QtCore.SIGNAL("clicked()"), self.leftButtonClicked)
+		QtCore.QObject.connect(self.ui.buttonRight, QtCore.SIGNAL("clicked()"), self.rightButtonClicked)
+		
+		self.ui.tablesList.setColumnWidth(0,150)
+		self.ui.tablesList.setColumnWidth(1,30)
 		
 		self.fileName = fileName
 		
@@ -67,13 +104,35 @@ class SqliteWidget(QtGui.QWidget):
 			print("\nUnexpected error: %s"%sys.exc_info()[1])
 			self.close()
 		
-		
+	
+	def setTitle(self, title):
+		self.setWindowTitle(title)
+	
+	def leftButtonClicked(self):
+		if (self.pageNumber > 0):
+			self.pageNumber = self.pageNumber - 1
+			self.updateTableDisplay()
+
+	def rightButtonClicked(self):
+		self.pageNumber = self.pageNumber + 1
+		self.updateTableDisplay()	
+	
 	def tableClicked(self):
 		currentSelectedElement = self.ui.tablesList.currentItem()
 		if (currentSelectedElement): pass
 		else: return
 		
 		tableName = currentSelectedElement.text(0)
+		self.currentTableOnDisplay = tableName
+		self.pageNumber = 0
+		
+		self.updateTableDisplay()
+		
+		
+	def updateTableDisplay(self):
+
+		tableName = self.currentTableOnDisplay
+		if (tableName == None): return
 
 		if (os.path.exists(self.fileName)):
 			seltabledb = sqlite3.connect(self.fileName)
@@ -105,10 +164,12 @@ class SqliteWidget(QtGui.QWidget):
 					index = index + 1
 					fieldsNames.append(str(record[1]))
 				
-				seltablecur.execute("SELECT * FROM %s" % (tableName))
+				seltablecur.execute("SELECT * FROM %s LIMIT %i OFFSET %i" % (tableName, self.itemsPerScreen, self.pageNumber * self.itemsPerScreen))
 				records = seltablecur.fetchall();
 				
 				self.ui.tableContent.setRowCount(len(records))
+				
+				self.ui.recordLabel.setText("Records %i-%i"%(self.pageNumber*self.itemsPerScreen+1, (self.pageNumber+1)*self.itemsPerScreen))
 				
 				rowIndex = 0
 				for record in records:
@@ -207,8 +268,6 @@ class IPBA2(QtGui.QMainWindow):
 
 
 	def openFile(self):
-	
-		print "click"
 
 		currentSelectedElement = self.ui.fileTree.currentItem()
 		if (currentSelectedElement): pass
@@ -227,8 +286,16 @@ class IPBA2(QtGui.QMainWindow):
 		# if sqlite file
 		if (filemagic.partition("/")[2] == "sqlite"):
 			newWidget = SqliteWidget(realFileName)
+			newWidget.setTitle(element['file_name'] + " - SQLite Browser")
 			self.ui.mdiArea.addSubWindow(newWidget)
 			newWidget.show()
+		
+		# if graphics file
+		elif (filemagic.partition("/")[0] == "image"):
+			newWidget = ImageWidget(realFileName)
+			newWidget.setTitle(element['file_name'] + " - Image Viewer")
+			self.ui.mdiArea.addSubWindow(newWidget)
+			newWidget.show()		
 		
 	
 	def elementFromID(self, id):
