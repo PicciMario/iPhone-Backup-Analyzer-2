@@ -48,22 +48,27 @@ class HexWidget(QtGui.QWidget):
 		
 		self.fileName = fileName
 
-		QtCore.QObject.connect(self.ui.buttonLeft, QtCore.SIGNAL("clicked()"), self.leftButtonClicked)
 		QtCore.QObject.connect(self.ui.buttonRight, QtCore.SIGNAL("clicked()"), self.rightButtonClicked)
+		QtCore.QObject.connect(self.ui.buttonLeft, QtCore.SIGNAL("clicked()"), self.leftButtonClicked)
+		QtCore.QObject.connect(self.ui.buttonTop, QtCore.SIGNAL("clicked()"), self.topButtonClicked)
 		
 		self.updateTable()
 		
 	
 	def updateTable(self):	
 	
+		self.ui.hexTable.clear()
+
+		for i in range(0,16):
+			newItem = QtGui.QTableWidgetItem("%X"%i)
+			self.ui.hexTable.setHorizontalHeaderItem(i, newItem)
+		
 		try:
 			fh = open(self.fileName, 'rb')
 			fh.seek(self.pageSize*self.page)
 			text = fh.read(self.pageSize)
 			
-			self.ui.hexTable.setRowCount(int(self.pageSize / 16))
-			
-			print len(text)
+			self.ui.hexTable.setRowCount(int(len(text) / 16))
 		
 			row = 0
 			while text:
@@ -77,7 +82,10 @@ class HexWidget(QtGui.QWidget):
 					col = col + 1
 				
 				newItem = QtGui.QTableWidgetItem(str(self.hex2string(s)))
-				self.ui.hexTable.setItem(row, col, newItem)
+				self.ui.hexTable.setItem(row, 16, newItem)
+				
+				newItem = QtGui.QTableWidgetItem("%04X"%(row * 16 + self.page * self.pageSize))
+				self.ui.hexTable.setVerticalHeaderItem(row, newItem)
 				
 				row = row + 1
 			
@@ -97,6 +105,10 @@ class HexWidget(QtGui.QWidget):
 		self.page = self.page + 1
 		self.updateTable()	
 	
+	def topButtonClicked(self):
+		self.page = 0
+		self.updateTable()	
+
 
 class ImageWidget(QtGui.QWidget):
 
