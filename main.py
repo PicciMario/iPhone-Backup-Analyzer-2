@@ -382,6 +382,8 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileTree.setColumnHidden(1,True)
 		self.ui.fileTree.setColumnHidden(3,True)
 		
+		self.ui.imagePreviewLabel.hide()
+		
 		# attach context menu to rightclick on elements tree
 		self.ui.fileTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		self.connect(self.ui.fileTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
@@ -602,7 +604,19 @@ class IPBA2(QtGui.QMainWindow):
 		# cursor back at top left
 		textCursor = self.ui.fileInfoText.textCursor() 
 		textCursor.setPosition(0) 
-		self.ui.fileInfoText.setTextCursor(textCursor) 		
+		self.ui.fileInfoText.setTextCursor(textCursor) 	
+
+		# if image, draw preview
+		realFileName = os.path.join(self.backup_path, item_filecode)
+		filemagic = self.readMagic(realFileName)
+		view = self.ui.imagePreviewLabel
+		
+		if (filemagic.partition("/")[0] == "image"):
+			pic = QtGui.QPixmap(realFileName).scaled(200, 200, QtCore.Qt.KeepAspectRatio)	
+			view.setPixmap(pic) 
+			view.show() 
+		else:
+			view.hide()
 	
 	def readBackupArchive(self):
 
