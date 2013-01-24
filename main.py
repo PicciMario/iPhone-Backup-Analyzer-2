@@ -6,7 +6,97 @@ import mbdbdecoding, plistutils, magic
 from main_window import Ui_MainWindow
 from sqlite_widget import Ui_SqliteWidget
 from image_widget import Ui_ImageWidget
+from hex_widget import Ui_HexWidget
 
+
+class HexWidget(QtGui.QWidget):
+
+	page = 0
+	pageSize = 1024
+	
+	FILTER=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
+	def hex2string(self, src, length=8):
+		N=0; result=''
+		while src:
+			s,src = src[:length],src[length:]
+			hexa = ' '.join(["%02X"%ord(x) for x in s])
+			s = s.translate(self.FILTER)
+			N+=length
+			result += s
+		return result
+
+	def hex2numsArray(self, src, length=1):
+		N=0; result=[]
+		while src:
+		   s,src = src[:length],src[length:]
+		   hexa = ' '.join(["%02X"%ord(x) for x in s])
+		   s = s.translate(self.FILTER)
+		   N+=length
+		   result.append(hexa)
+		return result
+
+	def setTitle(self, title):
+		self.setWindowTitle(title)
+
+	def __init__(self, fileName = None):
+		QtGui.QWidget.__init__(self)
+		
+		self.ui = Ui_HexWidget()
+		self.ui.setupUi(self)
+		
+		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		
+		self.fileName = fileName
+
+		QtCore.QObject.connect(self.ui.buttonLeft, QtCore.SIGNAL("clicked()"), self.leftButtonClicked)
+		QtCore.QObject.connect(self.ui.buttonRight, QtCore.SIGNAL("clicked()"), self.rightButtonClicked)
+		
+		self.updateTable()
+		
+	
+	def updateTable(self):	
+	
+		try:
+			fh = open(self.fileName, 'rb')
+			fh.seek(self.pageSize*self.page)
+			text = fh.read(self.pageSize)
+			
+			self.ui.hexTable.setRowCount(int(self.pageSize / 16))
+			
+			print len(text)
+		
+			row = 0
+			while text:
+				s, text = text[:16],text[16:]
+				
+				col = 0
+				for element in self.hex2numsArray(s):
+					
+					newItem = QtGui.QTableWidgetItem(str(element))
+					self.ui.hexTable.setItem(row, col, newItem)				
+					col = col + 1
+				
+				newItem = QtGui.QTableWidgetItem(str(self.hex2string(s)))
+				self.ui.hexTable.setItem(row, col, newItem)
+				
+				row = row + 1
+			
+			fh.close()
+		
+		except:
+			print "Unexpected error:", sys.exc_info()
+
+		self.ui.hexTable.resizeColumnsToContents()		
+		
+	def leftButtonClicked(self):
+		if (self.page > 0):
+			self.page = self.page - 1
+			self.updateTable()
+
+	def rightButtonClicked(self):
+		self.page = self.page + 1
+		self.updateTable()	
+	
 
 class ImageWidget(QtGui.QWidget):
 
@@ -264,6 +354,7 @@ class SqliteWidget(QtGui.QWidget):
 				print("Unexpected error:", sys.exc_info())
 			
 			seltabledb.close()
+			self.ui.tableContent.resizeColumnsToContents()	
 		
 		
 		
@@ -321,6 +412,13 @@ class IPBA2(QtGui.QMainWindow):
 			action1.triggered.connect(self.openSelectedImage)
 			menu.addAction(action1)
 			showMenu = True
+	
+		# if HEX (in any case)
+		if True:
+			action1 = QtGui.QAction("Open with Hex Viewer", self)
+			action1.triggered.connect(self.openSelectedHex)
+			menu.addAction(action1)
+			showMenu = True
 		
 		if (showMenu):
 			menu.exec_(self.ui.fileTree.mapToGlobal(pos));
@@ -350,6 +448,18 @@ class IPBA2(QtGui.QMainWindow):
 		newWidget.setTitle(element['file_name'] + " - Image Viewer")
 		self.ui.mdiArea.addSubWindow(newWidget)
 		newWidget.show()	
+
+	def openSelectedHex(self):
+		
+		element = self.getSelectedFileData()
+		if (element == None): return
+		
+		realFileName = os.path.join(self.backup_path, element['fileid'])
+	
+		newWidget = HexWidget(realFileName)
+		newWidget.setTitle(element['file_name'] + " - Image Viewer")
+		self.ui.mdiArea.addSubWindow(newWidget)
+		newWidget.show()
 	
 	#-----------------------------------------------------------------------------------------------
 	
