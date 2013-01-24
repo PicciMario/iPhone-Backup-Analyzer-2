@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>1161</width>
-    <height>530</height>
+    <height>551</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>iPBA 2</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">

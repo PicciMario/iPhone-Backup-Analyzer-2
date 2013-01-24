@@ -20,16 +20,52 @@ class ImageWidget(QtGui.QWidget):
 		
 		self.fileName = fileName
 		
-		# render image
-		scene = QtGui.QGraphicsScene() 
-
-		pic = QtGui.QPixmap(fileName).scaled(self.ui.imageView.size(), QtCore.Qt.KeepAspectRatio)
-		scene.addItem(QtGui.QGraphicsPixmapItem(pic)) 
-		view = self.ui.imageView 
-		view.setScene(scene) 
-		view.setRenderHint(QtGui.QPainter.Antialiasing) 
-		view.show() 		
+		pic = QtGui.QPixmap(fileName).scaled(300, 300, QtCore.Qt.KeepAspectRatio)
 			
+		view = self.ui.imageLabel
+		view.setPixmap(pic) 
+		view.show() 
+		
+		#retrieve EXIF data
+
+		from PIL import Image
+		from PIL.ExifTags import TAGS
+
+		self.ui.exifTable.clear()
+		
+		self.ui.exifTable.setHorizontalHeaderItem(0, QtGui.QTableWidgetItem("Tag"))
+		self.ui.exifTable.setHorizontalHeaderItem(1, QtGui.QTableWidgetItem("Descr"))
+		self.ui.exifTable.setHorizontalHeaderItem(2, QtGui.QTableWidgetItem("Value"))
+
+		try:
+			i = Image.open(self.fileName)
+			info = i._getexif()
+			
+			self.ui.exifTable.setRowCount(len(info))
+			
+			row = 0
+			for tag, value in info.items():
+				decoded = TAGS.get(tag, tag)
+
+				newItem = QtGui.QTableWidgetItem(str(tag))
+				self.ui.exifTable.setItem(row, 0, newItem)
+				
+				newItem = QtGui.QTableWidgetItem(decoded)
+				self.ui.exifTable.setItem(row, 1, newItem)
+
+				if (type(value) == type((1,2))):
+					value = "%.3f (%i / %i)"%(float(value[0]) / float(value[1]), value[0], value[1])
+				
+				newItem = QtGui.QTableWidgetItem(str(value))
+				self.ui.exifTable.setItem(row, 2, newItem)
+				
+				row = row + 1
+		
+			self.ui.exifTable.resizeColumnsToContents()	
+				
+		except:
+			pass
+		
 	def setTitle(self, title):
 		self.setWindowTitle(title)
 
@@ -233,6 +269,7 @@ class SqliteWidget(QtGui.QWidget):
 		
 
 class IPBA2(QtGui.QMainWindow):
+
 	def __init__(self, parent = None):
 		QtGui.QMainWindow.__init__(self, parent)
 		
@@ -254,6 +291,101 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileTree.setColumnHidden(1,True)
 		self.ui.fileTree.setColumnHidden(3,True)
 		
+		# attach context menu to rightclick on elements tree
+		self.ui.fileTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		self.connect(self.ui.fileTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
+
+	# builds context menu
+	def ctxMenu(self, pos):
+
+		data = self.getSelectedFileData()
+		if (data == None): return
+		
+		realFileName = os.path.join(self.backup_path, data['fileid'])
+		filemagic = self.readMagic(realFileName)
+		
+		showMenu = False
+		
+		menu =  QtGui.QMenu();
+		
+		# if sqlite
+		if (filemagic.partition("/")[2] == "sqlite"):
+			action1 = QtGui.QAction("Open with SQLite Browser", self)
+			action1.triggered.connect(self.openSelectedSqlite)
+			menu.addAction(action1)
+			showMenu = True
+
+		# if image
+		if (filemagic.partition("/")[0] == "image"):
+			action1 = QtGui.QAction("Open with Image Viewer", self)
+			action1.triggered.connect(self.openSelectedImage)
+			menu.addAction(action1)
+			showMenu = True
+		
+		if (showMenu):
+			menu.exec_(self.ui.fileTree.mapToGlobal(pos));
+	
+	# CONTEXT MENU ACTIONS --------------------------------------------------------------------------
+	
+	def openSelectedSqlite(self):
+		
+		element = self.getSelectedFileData()
+		if (element == None): return
+		
+		realFileName = os.path.join(self.backup_path, element['fileid'])
+	
+		newWidget = SqliteWidget(realFileName)
+		newWidget.setTitle(element['file_name'] + " - SQLite Browser")
+		self.ui.mdiArea.addSubWindow(newWidget)
+		newWidget.show()
+
+	def openSelectedImage(self):
+		
+		element = self.getSelectedFileData()
+		if (element == None): return
+		
+		realFileName = os.path.join(self.backup_path, element['fileid'])
+	
+		newWidget = ImageWidget(realFileName)
+		newWidget.setTitle(element['file_name'] + " - Image Viewer")
+		self.ui.mdiArea.addSubWindow(newWidget)
+		newWidget.show()	
+	
+	#-----------------------------------------------------------------------------------------------
+	
+	# return database ID of the currently selected element
+	def getSelectedElementID(self):
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return None
+		
+		return currentSelectedElement.text(3)
+		
+	
+	# return DB record for selected item
+	def getSelectedElementData(self):
+	
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return None,None
+		
+		item_id = currentSelectedElement.text(3)
+	
+		data = self.getElementFromID(item_id)
+		if (data == None): return None,None
+
+		item_type = currentSelectedElement.text(1)
+		
+		return data, item_type			
+	
+	
+	# return DB record for selected item (only files "-")
+	def getSelectedFileData(self):
+		data, item_type = self.getSelectedElementData()
+		if (data == None): return None
+		if (item_type != '-'): return None
+		return data
+	
 	
 	FILTER=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
 	def hex2nums(self, src, length=8):
@@ -267,17 +399,32 @@ class IPBA2(QtGui.QMainWindow):
 		return result	
 
 
+	def getElementFromID(self, id):
+		query = "SELECT * FROM indice WHERE id = ?"
+		self.cursor.execute(query, (id,))
+		data = self.cursor.fetchone()
+		
+		if (data == None): return None
+		
+		if (len(data) == 0): 
+			return None
+		else:
+			return data
+
+	def readMagic(self, item_realpath):
+
+		# check for existence 
+		if (os.path.exists(item_realpath) == 0):
+			return None
+		
+		# print file type (from magic numbers)
+		filemagic = magic.file(item_realpath)
+		return filemagic
+
+
 	def openFile(self):
 
-		currentSelectedElement = self.ui.fileTree.currentItem()
-		if (currentSelectedElement): pass
-		else: return
-		
-		item_type = currentSelectedElement.text(1)
-		if (item_type != '-'): return
-		
-		id = currentSelectedElement.text(3)
-		element = self.elementFromID(id)
+		element = self.getSelectedFileData()
 		if (element == None): return
 		
 		realFileName = os.path.join(self.backup_path, element['fileid'])
@@ -295,43 +442,15 @@ class IPBA2(QtGui.QMainWindow):
 			newWidget = ImageWidget(realFileName)
 			newWidget.setTitle(element['file_name'] + " - Image Viewer")
 			self.ui.mdiArea.addSubWindow(newWidget)
-			newWidget.show()		
+			newWidget.show()	
 		
-	
-	def elementFromID(self, id):
-		query = "SELECT * FROM indice WHERE id = ?"
-		self.cursor.execute(query, (id,))
-		data = self.cursor.fetchone()
-		
-		if (len(data) == 0): 
-			return None
-		else:
-			return data
-
-	def readMagic(self, item_realpath):
-
-		# check for existence 
-		if (os.path.exists(item_realpath) == 0):
-			return None
-		
-		# print file type (from magic numbers)
-		filemagic = magic.file(item_realpath)
-		return filemagic
 	
 	def onTreeClick(self):
-		
-		currentSelectedElement = self.ui.fileTree.currentItem()
-		if (currentSelectedElement): pass
-		else: return
-		
-		item_type = currentSelectedElement.text(1)
-		if (item_type != '-'): return
-		
-		item_id = currentSelectedElement.text(3)
 	
-		data = self.elementFromID(item_id)
-		if (data == None):
-			return
+		data, item_type = self.getSelectedElementData()
+		item_id = self.getSelectedElementID()
+		if (data == None or item_id == None): return
+		if (item_type != "-"): return
 		
 		item_name = str(data['file_name'])
 		item_permissions = str(data['permissions'])
@@ -376,9 +495,21 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileInfoText.setTextCursor(textCursor) 		
 	
 	def readBackupArchive(self):
-	
-		iOSVersion = 5
+
 		self.backup_path = "c:\Users\mario\AppData\Roaming\Apple Computer\MobileSync\Backup\\281fdc7a0d7d39e71bb8d7113f73acd97b88a751"
+		
+		#self.backup_path = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
+		
+		if (self.backup_path == None):
+			sys.exit(0)
+		
+		self.backup_path = os.path.abspath(self.backup_path)
+
+		# if exists Manifest.mbdx, then iOS <= 4
+		iOSVersion = 5
+		mbdxPath = os.path.join(self.backup_path, "Manifest.mbdx")
+		if (os.path.exists(mbdxPath)):
+			iOSVersion = 4
 		
 		# decode Manifest files
 		mbdbPath = os.path.join(self.backup_path, "Manifest.mbdb")
@@ -386,7 +517,7 @@ class IPBA2(QtGui.QMainWindow):
 			mbdb = mbdbdecoding.process_mbdb_file(mbdbPath)
 		else:
 			#usage()
-			print("\nManifest.mbdb not found in path \"%s\". Are you sure this is a correct iOS backup dir?\n"%(backup_path))
+			print("\nManifest.mbdb not found in path \"%s\". Are you sure this is a correct iOS backup dir?\n"%(self.backup_path))
 			sys.exit(1)
 		
 		# decode mbdx file (only iOS 4)
@@ -396,13 +527,11 @@ class IPBA2(QtGui.QMainWindow):
 				mbdx = mbdbdecoding.process_mbdx_file(mbdxPath)
 			else:
 				#usage()
-				print("\nManifest.mbdx not found in path \"%s\". Are you sure this is a correct iOS backup dir, and are you sure this is an iOS 4 backup?\n"%(backup_path))
+				print("\nManifest.mbdx not found in path \"%s\". Are you sure this is a correct iOS backup dir, and are you sure this is an iOS 4 backup?\n"%(self.backup_path))
 				sys.exit(1)	
 
 		# prepares DB
-		# database = sqlite3.connect('MyDatabase.db') # Create a database file
 		database = sqlite3.connect(':memory:') # Create a database file in memory
-		#database = sqlite3.connect('mille.sqlite') # Create a database file in memory
 		database.row_factory = sqlite3.Row
 		self.cursor = database.cursor() # Create a cursor
 		
