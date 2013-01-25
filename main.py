@@ -1,4 +1,4 @@
-import sys, sqlite3, time, datetime, os, hashlib, getopt
+import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil
 from PySide import QtCore, QtGui
 
 import mbdbdecoding, plistutils, magic
@@ -494,6 +494,13 @@ class IPBA2(QtGui.QMainWindow):
 			action1.triggered.connect(self.openSelectedHex)
 			menu.addAction(action1)
 			showMenu = True
+			
+		# export (any file)
+		if True:
+			action1 = QtGui.QAction("Export", self)
+			action1.triggered.connect(self.exportSelectedFile)
+			menu.addAction(action1)
+			showMenu = True			
 		
 		if (showMenu):
 			menu.exec_(self.ui.fileTree.mapToGlobal(pos));
@@ -565,7 +572,32 @@ class IPBA2(QtGui.QMainWindow):
 		newWidget.setTitle(title)
 		self.ui.mdiArea.addSubWindow(newWidget)
 		newWidget.show()
+
+	def exportSelectedFile(self):
 	
+		# managing "standard" files
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+
+		if (currentSelectedElement.text(1) == "X"):	
+			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			newName = currentSelectedElement.text(0)
+		else:
+			element = self.getSelectedFileData()
+			if (element == None): return
+			realFileName = os.path.join(self.backup_path, element['fileid'])
+			newName = element['file_name']
+	
+		exportPath = QtGui.QFileDialog.getExistingDirectory(self, "Select export path", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
+		if (len(exportPath) == 0): return
+		
+		try:
+			shutil.copy(realFileName, os.path.join(exportPath, newName))
+			QtGui.QMessageBox.about(self, "Confirm", "File exported in %s."%exportPath)
+		except:
+			QtGui.QMessageBox.about(self, "Error", "Error while exporting file.")
+			
 	#-----------------------------------------------------------------------------------------------
 	
 	# return database ID of the currently selected element
