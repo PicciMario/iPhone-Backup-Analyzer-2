@@ -1,4 +1,4 @@
-import sys, sqlite3, time, datetime, os, hashlib
+import sys, sqlite3, time, datetime, os, hashlib, getopt
 from PySide import QtCore, QtGui
 
 import mbdbdecoding, plistutils, magic
@@ -7,6 +7,33 @@ from main_window import Ui_MainWindow
 from sqlite_widget import Ui_SqliteWidget
 from image_widget import Ui_ImageWidget
 from hex_widget import Ui_HexWidget
+from text_widget import Ui_TextWidget
+
+
+class TextWidget(QtGui.QWidget):
+
+	def __init__(self, fileName = None):
+		QtGui.QWidget.__init__(self)
+		
+		self.ui = Ui_TextWidget()
+		self.ui.setupUi(self)
+		
+		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		
+		self.fileName = fileName
+		
+		f = open(self.fileName, 'r')
+		
+		lines = f.readlines()
+		
+		for line in lines:
+			self.ui.textContainer.append(line.rstrip('\n'))
+		
+		f.close()
+		
+	def setTitle(self, title):
+		self.setWindowTitle(title)
+
 
 
 class HexWidget(QtGui.QWidget):
@@ -54,7 +81,7 @@ class HexWidget(QtGui.QWidget):
 		
 		self.updateTable()
 		
-	
+		
 	def updateTable(self):	
 	
 		self.ui.hexTable.clear()
@@ -95,6 +122,7 @@ class HexWidget(QtGui.QWidget):
 			print "Unexpected error:", sys.exc_info()
 
 		self.ui.hexTable.resizeColumnsToContents()		
+		self.ui.hexTable.resizeRowsToContents()		
 		
 	def leftButtonClicked(self):
 		if (self.page > 0):
@@ -164,6 +192,7 @@ class ImageWidget(QtGui.QWidget):
 				row = row + 1
 		
 			self.ui.exifTable.resizeColumnsToContents()	
+			self.ui.exifTable.resizeRowsToContents()
 				
 		except:
 			pass
@@ -367,22 +396,26 @@ class SqliteWidget(QtGui.QWidget):
 			
 			seltabledb.close()
 			self.ui.tableContent.resizeColumnsToContents()	
+			self.ui.tableContent.resizeRowsToContents()
 		
 		
-		
-
 class IPBA2(QtGui.QMainWindow):
 
-	def __init__(self, parent = None):
-		QtGui.QMainWindow.__init__(self, parent)
+	def __init__(self, backup_path = None):
+		QtGui.QMainWindow.__init__(self, None)
 		
 		self.ui = Ui_MainWindow()
 		self.ui.setupUi(self)
 		
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 		
-		self.parent = parent
+		self.backup_path = backup_path
+	
+		if (self.backup_path == None):
+			self.backup_path = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
 		
+		if (self.backup_path == None):
+			sys.exit(0)
 		self.readBackupArchive()
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
@@ -403,10 +436,19 @@ class IPBA2(QtGui.QMainWindow):
 	# builds context menu
 	def ctxMenu(self, pos):
 
-		data = self.getSelectedFileData()
-		if (data == None): return
+		# managing "standard" files
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+
+		if (currentSelectedElement.text(1) == "X"):	
+			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
 		
-		realFileName = os.path.join(self.backup_path, data['fileid'])
+		else:
+			data = self.getSelectedFileData()
+			if (data == None): return
+			realFileName = os.path.join(self.backup_path, data['fileid'])
+		
 		filemagic = self.readMagic(realFileName)
 		
 		showMenu = False
@@ -417,6 +459,13 @@ class IPBA2(QtGui.QMainWindow):
 		if (filemagic.partition("/")[2] == "sqlite"):
 			action1 = QtGui.QAction("Open with SQLite Browser", self)
 			action1.triggered.connect(self.openSelectedSqlite)
+			menu.addAction(action1)
+			showMenu = True
+
+		# if ASCII
+		if (filemagic.partition("/")[0] == "text"):
+			action1 = QtGui.QAction("Open with ASCII Viewer", self)
+			action1.triggered.connect(self.openSelectedText)
 			menu.addAction(action1)
 			showMenu = True
 
@@ -464,14 +513,44 @@ class IPBA2(QtGui.QMainWindow):
 		newWidget.show()	
 
 	def openSelectedHex(self):
-		
-		element = self.getSelectedFileData()
-		if (element == None): return
-		
-		realFileName = os.path.join(self.backup_path, element['fileid'])
+	
+		# managing "standard" files
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+
+		if (currentSelectedElement.text(1) == "X"):	
+			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			title = currentSelectedElement.text(0) + " - Hex editor"
+		else:
+			element = self.getSelectedFileData()
+			if (element == None): return
+			realFileName = os.path.join(self.backup_path, element['fileid'])
+			title = element['file_name'] + " - Hex editor"
 	
 		newWidget = HexWidget(realFileName)
-		newWidget.setTitle(element['file_name'] + " - Image Viewer")
+		newWidget.setTitle(title)
+		self.ui.mdiArea.addSubWindow(newWidget)
+		newWidget.show()
+
+	def openSelectedText(self):
+	
+		# managing "standard" files
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+
+		if (currentSelectedElement.text(1) == "X"):	
+			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			title = currentSelectedElement.text(0) + " - Text Viewer"
+		else:
+			element = self.getSelectedFileData()
+			if (element == None): return
+			realFileName = os.path.join(self.backup_path, element['fileid'])
+			title = element['file_name'] + " - Text Viewer"
+	
+		newWidget = TextWidget(realFileName)
+		newWidget.setTitle(title)
 		self.ui.mdiArea.addSubWindow(newWidget)
 		newWidget.show()
 	
@@ -571,10 +650,30 @@ class IPBA2(QtGui.QMainWindow):
 	
 	def onTreeClick(self):
 	
+		# managing "standard" files
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+
+		if (currentSelectedElement.text(1) == "X"):	
+			item_realpath = os.path.join(backup_path, currentSelectedElement.text(0))
+
+			if (os.path.exists(item_realpath)):		
+				self.ui.fileInfoText.clear()
+				self.ui.fileInfoText.append("<strong>File</strong>: " + currentSelectedElement.text(0))
+			
+				filemagic = self.readMagic(item_realpath)
+				self.ui.fileInfoText.append("")
+				self.ui.fileInfoText.append("<strong>File type: </strong>" + filemagic)
+				
+			else:
+				print("...troubles while opening file %s (does not exist)"%item_realpath)
+			
+			return
+	
 		data, item_type = self.getSelectedElementData()
 		item_id = self.getSelectedElementID()
 		if (data == None or item_id == None): return
-		if (item_type != "-"): return
 		
 		item_name = str(data['file_name'])
 		item_permissions = str(data['permissions'])
@@ -613,10 +712,24 @@ class IPBA2(QtGui.QMainWindow):
 			for element in data:
 				self.ui.fileInfoText.append("%s: %s" %(element[0], element[1]))
 
+		# treat sym links
+		if (item_type == "l"):
+			self.ui.fileInfoText.append("")
+			self.ui.fileInfoText.append("<strong>This item is a symbolic link to another file.</strong>")
+			self.ui.fileInfoText.append("<strong>Link Target</strong>: " + item_link_target)
+			
+		# treat directories
+		if (item_type == "d"):
+			self.ui.fileInfoText.append("")
+			self.ui.fileInfoText.append("<strong>This item represents a directory.</strong>")		
+
 		# cursor back at top left
 		textCursor = self.ui.fileInfoText.textCursor() 
 		textCursor.setPosition(0) 
 		self.ui.fileInfoText.setTextCursor(textCursor) 	
+
+		# if not file, stop here
+		if (item_type != "-"): return
 
 		# if image, draw preview
 		realFileName = os.path.join(self.backup_path, item_filecode)
@@ -631,13 +744,6 @@ class IPBA2(QtGui.QMainWindow):
 			view.hide()
 	
 	def readBackupArchive(self):
-
-		self.backup_path = "c:\Users\mario\AppData\Roaming\Apple Computer\MobileSync\Backup\\281fdc7a0d7d39e71bb8d7113f73acd97b88a751"
-		
-		#self.backup_path = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
-		
-		if (self.backup_path == None):
-			sys.exit(0)
 		
 		self.backup_path = os.path.abspath(self.backup_path)
 
@@ -791,6 +897,17 @@ class IPBA2(QtGui.QMainWindow):
 		# print banner
 		print("\nWorking directory: %s"%self.backup_path)
 		print("Read elements: %i" %items)
+		
+		# add STANDARD files
+		standardFiles = QtGui.QTreeWidgetItem(None)
+		standardFiles.setText(0, "Standard files")
+		self.ui.fileTree.addTopLevelItem(standardFiles)
+		
+		for elementName in ['Manifest.plist', 'Info.plist', 'Status.plist']:
+			newItem = QtGui.QTreeWidgetItem(standardFiles)
+			newItem.setText(0, elementName)
+			newItem.setText(1, "X")
+			self.ui.fileTree.addTopLevelItem(newItem)		
 
 		# retrieve domain families
 		self.cursor.execute("SELECT DISTINCT(domain_type) FROM indice");
@@ -868,7 +985,21 @@ class IPBA2(QtGui.QMainWindow):
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
-    main_ipba2_window = IPBA2()
-    main_ipba2_window.show()
-    sys.exit(app.exec_())
+
+	backup_path = None
+
+	# input parameters
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "d")
+	except getopt.GetoptError as err:
+		print("\n%s\n"%str(err))
+		sys.exit(2)
+	
+	for o, a in opts:
+		if o in ("-d"):
+			backup_path = "c:\Users\mario\AppData\Roaming\Apple Computer\MobileSync\Backup\\281fdc7a0d7d39e71bb8d7113f73acd97b88a751"	
+
+	app = QtGui.QApplication(sys.argv)
+	main_ipba2_window = IPBA2(backup_path)
+	main_ipba2_window.show()
+	sys.exit(app.exec_())
