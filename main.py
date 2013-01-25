@@ -432,6 +432,18 @@ class IPBA2(QtGui.QMainWindow):
 		# attach context menu to rightclick on elements tree
 		self.ui.fileTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		self.connect(self.ui.fileTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
+		
+		# toolbar bindings
+		self.ui.actionNext.triggered.connect(self.nextWindow)
+		self.ui.actionPrev.triggered.connect(self.prevWindow)
+		self.ui.actionTile.triggered.connect(self.tileWindow)
+
+	def nextWindow(self):
+		self.ui.mdiArea.activateNextSubWindow()
+	def prevWindow(self):
+		self.ui.mdiArea.activatePreviousSubWindow()
+	def tileWindow(self):
+		self.ui.mdiArea.tileSubWindows()
 
 	# builds context menu
 	def ctxMenu(self, pos):

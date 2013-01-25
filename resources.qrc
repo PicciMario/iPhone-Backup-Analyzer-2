@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>images/prev.png</file>
+    <file>images/tile.png</file>
+    <file>images/next.png</file>
+  </qresource>
+</RCC>
