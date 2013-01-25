@@ -416,10 +416,11 @@ class IPBA2(QtGui.QMainWindow):
 		
 		if (self.backup_path == None):
 			sys.exit(0)
+			
+		self.repairDBFiles()
 		self.readBackupArchive()
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
-		QtCore.QObject.connect(self.ui.open_sqlite, QtCore.SIGNAL("clicked()"), self.openFile)
 		
 		self.ui.fileTree.setColumnWidth(0,200)
 		self.ui.fileTree.setColumnWidth(2,16)
@@ -599,6 +600,61 @@ class IPBA2(QtGui.QMainWindow):
 			QtGui.QMessageBox.about(self, "Error", "Error while exporting file.")
 			
 	#-----------------------------------------------------------------------------------------------
+
+	# --------------------------------------------------------------------------------------------------------
+	# Repairs sqlite files (windows only) by Fabio Sangiacomo <fabio.sangiacomo@digital-forensics.it> --------
+	
+	def repairDBFiles(self):
+	
+		if os.name == 'nt':
+
+			print "Cheching SQLite files integrity (windows only)..."
+		
+			import zipfile
+			zipfilename = os.path.join(self.backup_path, 'original_files.zip')
+
+			# skips this phase if original_files.zip is already present into backup_path
+			if os.path.exists(zipfilename) == 0:                
+
+				print '\nRepairing the databases ... '
+				zf = zipfile.ZipFile(zipfilename, mode='w')
+				rcount = 0
+
+				# scans the files into working directory
+				bkp_files = os.listdir(self.backup_path)
+				for fname in bkp_files:
+					item_realpath = os.path.join(self.backup_path,fname)
+					# checks for existence (skips curr file if false)
+					if (os.path.exists(item_realpath) == 0):
+						continue	
+					# check file type (from magic numbers)
+					filemagic = magic.file(item_realpath)
+					# filter by sqlite files
+					if (filemagic.partition("/")[2] == "sqlite"):
+						print fname
+						rcount += 1
+						# dump the database in an SQL text format (Temp.sql temporary file)
+						os.system('echo .dump | sqlite3 "%s" > Temp.sql' % item_realpath)
+
+						# saves the original file into the archive and releases the archive handle
+						current = os.getcwd()
+						os.chdir(self.backup_path)
+						zf.write(fname)
+						os.chdir(current)
+
+						#Removes original file
+						os.remove(item_realpath)
+
+						#Overwrites the original file with the Temp.sql content
+						os.system('echo .quit | sqlite3 -init Temp.sql "%s"' % item_realpath)
+
+						#Removes temporary file
+						if os.path.exists("Temp.sql"):
+							os.remove("Temp.sql")
+
+				print ('\n%d files competed!'%rcount) 
+				zf.close()
+
 	
 	# return database ID of the currently selected element
 	def getSelectedElementID(self):
