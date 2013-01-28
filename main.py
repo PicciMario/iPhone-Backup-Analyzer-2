@@ -1,5 +1,5 @@
 import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
-import biplist
+import biplist, plistlib
 from PySide import QtCore, QtGui
 
 import mbdbdecoding, plistutils, magic
@@ -10,7 +10,6 @@ from image_widget import Ui_ImageWidget
 from hex_widget import Ui_HexWidget
 from text_widget import Ui_TextWidget
 from plist_widget import Ui_PlistWidget
-
 
 class PlistWidget(QtGui.QWidget):
 	
@@ -32,15 +31,29 @@ class PlistWidget(QtGui.QWidget):
 		
 	def parsePlist(self):
 		
+		# check whether binary or plain
+		f = open(self.fileName, 'rb')
+		head = f.read(8)
+		f.close()
+		
 		try:
-			plist = biplist.readPlist(self.fileName)		
-			self.parseNode(plist, None)
+		
+			# plain
+			if head != "bplist00":
+				plist = plistlib.readPlist(self.fileName)
+		
+			# binary
+			else:
+				plist = biplist.readPlist(self.fileName)		
+			
+			self.parseNode(plist, None)			
+			
 		except:
 			print "Unexpected error:", sys.exc_info()
 
 	def parseNode(self, newNode, parentNode):
 	
-		if (type(newNode) == type({})):
+		if (type(newNode) == type({}) or type(newNode) == plistlib._InternalDict):
 			
 			for element in newNode:
 				titleNode = QtGui.QTreeWidgetItem(parentNode)
@@ -456,6 +469,56 @@ class SqliteWidget(QtGui.QWidget):
 		
 class IPBA2(QtGui.QMainWindow):
 
+
+	def loadPlugins(self):
+	
+		pluginsPackage = "ipba2-plugins"
+	
+		print("\n**** Loading plugins...")
+		self.pluginsList = []
+		
+		pluginsdir = os.path.join(os.path.dirname(__file__), pluginsPackage)
+		print("Loading plugins from dir: %s"%pluginsdir)
+		
+		for module in os.listdir(pluginsdir):
+			if module[-3:] != '.py' or module[0:4] != "plg_":
+				continue
+			modname = pluginsPackage + "." + module[:-3]
+			
+			# check whether module can be imported
+			try:
+				__import__(modname)
+			except:
+				print("Error while trying to load plugin file: %s"%modname)
+				print sys.exc_info()[0]
+				continue
+			
+			# check whether module has main() method
+			try:
+				getattr(sys.modules[modname], "main")
+			except:
+				print("Error: main() method not found in plugin %s"%modname)
+				continue	
+			
+			# check whether module has PLUGIN_NAME() method (optional)
+			try:
+				moddescr = getattr(sys.modules[modname], "PLUGIN_NAME")
+				print("Loaded plugin: %s - %s"%(modname, moddescr))
+			except:
+				print("Loaded plugin: %s - (name not available)"%modname)
+				print(sys.exc_info())
+				moddescr = modname
+			
+			self.pluginsList.append([modname, moddescr])		
+			
+	def runPlugin(self, modname, param = None):
+	
+			mainMethod = getattr(sys.modules[modname], 'main')
+			newWidget = mainMethod(param)
+			self.ui.mdiArea.addSubWindow(newWidget)
+			newWidget.show()		
+
+
 	def __init__(self, backup_path = None):
 		QtGui.QMainWindow.__init__(self, None)
 		
@@ -474,6 +537,8 @@ class IPBA2(QtGui.QMainWindow):
 			
 		self.repairDBFiles()
 		self.readBackupArchive()
+		
+		self.loadPlugins()
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
 		
@@ -545,8 +610,8 @@ class IPBA2(QtGui.QMainWindow):
 			showMenu = True
 
 		# if binary plist
-		if (filemagic.partition("/")[2] == "binary_plist"):
-			action1 = QtGui.QAction("Open with Binary Plist Viewer", self)
+		if (filemagic.partition("/")[2] == "binary_plist" or filemagic.partition("/")[2] == "plist"):
+			action1 = QtGui.QAction("Open with Plist Viewer", self)
 			action1.triggered.connect(self.openSelectedPlist)
 			menu.addAction(action1)
 			showMenu = True
