@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TextWidget</class>
- <widget class="QWidget" name="TextWidget">
+ <class>PlistWidget</class>
+ <widget class="QWidget" name="PlistWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>457</width>
+    <height>347</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,13 +15,12 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <widget class="QTextEdit" name="textContainer">
-     <property name="lineWrapMode">
-      <enum>QTextEdit::NoWrap</enum>
-     </property>
-     <property name="readOnly">
-      <bool>true</bool>
-     </property>
+    <widget class="QTreeWidget" name="plistTree">
+     <column>
+      <property name="text">
+       <string>Data</string>
+      </property>
+     </column>
     </widget>
    </item>
   </layout>

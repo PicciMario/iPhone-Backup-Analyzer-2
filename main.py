@@ -1,4 +1,5 @@
-import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil
+import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
+import biplist
 from PySide import QtCore, QtGui
 
 import mbdbdecoding, plistutils, magic
@@ -8,7 +9,57 @@ from sqlite_widget import Ui_SqliteWidget
 from image_widget import Ui_ImageWidget
 from hex_widget import Ui_HexWidget
 from text_widget import Ui_TextWidget
+from plist_widget import Ui_PlistWidget
 
+
+class PlistWidget(QtGui.QWidget):
+	
+	def __init__(self, fileName = None):
+		QtGui.QWidget.__init__(self)
+		
+		self.ui = Ui_PlistWidget()
+		self.ui.setupUi(self)
+		
+		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		
+		self.fileName = fileName
+		
+		self.parsePlist()
+
+	def setTitle(self, title):
+		self.setWindowTitle(title)
+		
+		
+	def parsePlist(self):
+		
+		try:
+			plist = biplist.readPlist(self.fileName)		
+			self.parseNode(plist, None)
+		except:
+			print "Unexpected error:", sys.exc_info()
+
+	def parseNode(self, newNode, parentNode):
+	
+		if (type(newNode) == type({})):
+			
+			for element in newNode:
+				titleNode = QtGui.QTreeWidgetItem(parentNode)
+				titleNode.setText(0, str(element))
+				self.ui.plistTree.addTopLevelItem(titleNode)
+				
+				self.parseNode(newNode[element], titleNode)
+		
+		elif (type(newNode) == type([])):
+			
+			for element in newNode:
+				self.parseNode(element, parentNode)
+		
+		else:
+			titleNode = QtGui.QTreeWidgetItem(parentNode)
+			titleNode.setText(0, str(newNode))
+			self.ui.plistTree.addTopLevelItem(titleNode)
+
+	
 
 class TextWidget(QtGui.QWidget):
 
@@ -20,7 +71,7 @@ class TextWidget(QtGui.QWidget):
 		
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 		
-		self.fileName = fileName
+		self.fileName = fileName			
 		
 		f = open(self.fileName, 'r')
 		
@@ -28,9 +79,13 @@ class TextWidget(QtGui.QWidget):
 		
 		for line in lines:
 			self.ui.textContainer.append(line.rstrip('\n'))
+
+		textCursor = self.ui.textContainer.textCursor() 
+		textCursor.setPosition(0) 
+		self.ui.textContainer.setTextCursor(textCursor) 		
 		
 		f.close()
-		
+			
 	def setTitle(self, title):
 		self.setWindowTitle(title)
 
@@ -455,7 +510,7 @@ class IPBA2(QtGui.QMainWindow):
 		else: return
 
 		if (currentSelectedElement.text(1) == "X"):	
-			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			realFileName = os.path.join(self.backup_path, currentSelectedElement.text(0))
 		
 		else:
 			data = self.getSelectedFileData()
@@ -486,6 +541,13 @@ class IPBA2(QtGui.QMainWindow):
 		if (filemagic.partition("/")[0] == "image"):
 			action1 = QtGui.QAction("Open with Image Viewer", self)
 			action1.triggered.connect(self.openSelectedImage)
+			menu.addAction(action1)
+			showMenu = True
+
+		# if binary plist
+		if (filemagic.partition("/")[2] == "binary_plist"):
+			action1 = QtGui.QAction("Open with Binary Plist Viewer", self)
+			action1.triggered.connect(self.openSelectedPlist)
 			menu.addAction(action1)
 			showMenu = True
 	
@@ -520,6 +582,27 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.mdiArea.addSubWindow(newWidget)
 		newWidget.show()
 
+	def openSelectedPlist(self):
+		
+		# managing "standard" files
+		currentSelectedElement = self.ui.fileTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+
+		if (currentSelectedElement.text(1) == "X"):	
+			realFileName = os.path.join(self.backup_path, currentSelectedElement.text(0))
+			title = currentSelectedElement.text(0) + " - Plist Viewer"
+		else:
+			element = self.getSelectedFileData()
+			if (element == None): return
+			realFileName = os.path.join(self.backup_path, element['fileid'])
+			title = element['file_name'] + " - Plist Viewer"
+	
+		newWidget = PlistWidget(realFileName)
+		newWidget.setTitle(title)
+		self.ui.mdiArea.addSubWindow(newWidget)
+		newWidget.show()
+
 	def openSelectedImage(self):
 		
 		element = self.getSelectedFileData()
@@ -540,7 +623,7 @@ class IPBA2(QtGui.QMainWindow):
 		else: return
 
 		if (currentSelectedElement.text(1) == "X"):	
-			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			realFileName = os.path.join(self.backup_path, currentSelectedElement.text(0))
 			title = currentSelectedElement.text(0) + " - Hex editor"
 		else:
 			element = self.getSelectedFileData()
@@ -561,7 +644,7 @@ class IPBA2(QtGui.QMainWindow):
 		else: return
 
 		if (currentSelectedElement.text(1) == "X"):	
-			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			realFileName = os.path.join(self.backup_path, currentSelectedElement.text(0))
 			title = currentSelectedElement.text(0) + " - Text Viewer"
 		else:
 			element = self.getSelectedFileData()
@@ -582,7 +665,7 @@ class IPBA2(QtGui.QMainWindow):
 		else: return
 
 		if (currentSelectedElement.text(1) == "X"):	
-			realFileName = os.path.join(backup_path, currentSelectedElement.text(0))
+			realFileName = os.path.join(self.backup_path, currentSelectedElement.text(0))
 			newName = currentSelectedElement.text(0)
 		else:
 			element = self.getSelectedFileData()
@@ -601,16 +684,14 @@ class IPBA2(QtGui.QMainWindow):
 			
 	#-----------------------------------------------------------------------------------------------
 
-	# --------------------------------------------------------------------------------------------------------
-	# Repairs sqlite files (windows only) by Fabio Sangiacomo <fabio.sangiacomo@digital-forensics.it> --------
+	# Repairs sqlite files (windows only) by Fabio Sangiacomo <fabio.sangiacomo@digital-forensics.it> 
 	
 	def repairDBFiles(self):
 	
 		if os.name == 'nt':
 
-			print "Cheching SQLite files integrity (windows only)..."
+			print "Checking SQLite files integrity (windows only)..."
 		
-			import zipfile
 			zipfilename = os.path.join(self.backup_path, 'original_files.zip')
 
 			# skips this phase if original_files.zip is already present into backup_path
@@ -756,7 +837,7 @@ class IPBA2(QtGui.QMainWindow):
 		else: return
 
 		if (currentSelectedElement.text(1) == "X"):	
-			item_realpath = os.path.join(backup_path, currentSelectedElement.text(0))
+			item_realpath = os.path.join(self.backup_path, currentSelectedElement.text(0))
 
 			if (os.path.exists(item_realpath)):		
 				self.ui.fileInfoText.clear()
