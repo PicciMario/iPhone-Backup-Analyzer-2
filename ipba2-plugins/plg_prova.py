@@ -18,5 +18,5 @@ class ProvaWidget(QtGui.QWidget):
 	def setTitle(self, title):
 		self.setWindowTitle(title)
 
-def main(fileName):
+def main(fileName, other = None):
 	return ProvaWidget(fileName)
