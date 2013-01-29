@@ -110,13 +110,7 @@ class CallHistoryWidget(QtGui.QWidget):
 			value = data[0][0]
 		else:
 			value = 0
-		return value
-
-	def addKey(self, text, value):
-		newNode = QtGui.QTreeWidgetItem(None)
-		newNode.setText(0, text)
-		newNode.setText(1, value)
-		self.ui.keysTree.addTopLevelItem(newNode)	
+		return value	
 		
 	def formatTime(self, seconds):
 		durationtot = int(seconds)

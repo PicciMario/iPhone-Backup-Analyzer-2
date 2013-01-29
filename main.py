@@ -519,8 +519,12 @@ class IPBA2(QtGui.QMainWindow):
 				print(sys.exc_info())
 				moddescr = modname
 			
-			self.pluginsList.append([modname, moddescr])		
-			
+			# add entry to plugins menu
+			entry = self.ui.menuPlugins.addAction(moddescr)
+			self.connect(entry, QtCore.SIGNAL('triggered()'), 
+				lambda modname=modname: self.runPlugin(modname))
+				
+				
 	def runPlugin(self, modname):
 	
 			mainMethod = getattr(sys.modules[modname], 'main')
@@ -549,8 +553,6 @@ class IPBA2(QtGui.QMainWindow):
 		
 		self.repairDBFiles()
 		self.readBackupArchive()
-		
-		self.runPlugin("ipba2-plugins.plg_callhistory")
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
 		
