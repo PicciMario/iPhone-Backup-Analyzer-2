@@ -131,6 +131,16 @@ Desktop.ini
 ## Python
 #############
 
+# files in my project
+hex_widget.py
+image_widget.py
+main.spec
+main_window.py
+plist_widget.py
+resources_rc.py
+sqlite_widget.py
+text_widget.py
+
 *.py[co]
 
 # Packages
