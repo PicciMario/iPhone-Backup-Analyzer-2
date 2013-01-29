@@ -55,8 +55,12 @@ class PlistWidget(QtGui.QWidget):
 	
 		if (type(newNode) == type({}) or type(newNode) == plistlib._InternalDict):
 			
+			dictNode = QtGui.QTreeWidgetItem(parentNode)
+			dictNode.setText(0, "<dict>")
+			self.ui.plistTree.addTopLevelItem(dictNode)
+			
 			for element in newNode:
-				titleNode = QtGui.QTreeWidgetItem(parentNode)
+				titleNode = QtGui.QTreeWidgetItem(dictNode)
 				titleNode.setText(0, str(element))
 				self.ui.plistTree.addTopLevelItem(titleNode)
 				
@@ -68,8 +72,14 @@ class PlistWidget(QtGui.QWidget):
 				self.parseNode(element, parentNode)
 		
 		else:
+		
+			try:
+				content = str(newNode)
+			except:
+				content = newNode.encode("utf8", "replace")		
+		
 			titleNode = QtGui.QTreeWidgetItem(parentNode)
-			titleNode.setText(0, str(newNode))
+			titleNode.setText(0, content)
 			self.ui.plistTree.addTopLevelItem(titleNode)
 
 	
@@ -534,11 +544,11 @@ class IPBA2(QtGui.QMainWindow):
 		
 		if (self.backup_path == None):
 			sys.exit(0)
-			
-		self.repairDBFiles()
-		self.readBackupArchive()
 		
 		self.loadPlugins()
+		
+		self.repairDBFiles()
+		self.readBackupArchive()
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
 		
