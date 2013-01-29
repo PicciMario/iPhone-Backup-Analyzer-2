@@ -131,7 +131,7 @@ Desktop.ini
 ## Python
 #############
 
-# files in my project
+# MY PROJECT - built resources
 hex_widget.py
 image_widget.py
 main.spec
@@ -140,6 +140,7 @@ plist_widget.py
 resources_rc.py
 sqlite_widget.py
 text_widget.py
+pyinstaller-2.0
 
 *.py[co]
 
