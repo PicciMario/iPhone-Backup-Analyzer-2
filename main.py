@@ -500,7 +500,7 @@ class IPBA2(QtGui.QMainWindow):
 				__import__(modname)
 			except:
 				print("Error while trying to load plugin file: %s"%modname)
-				print sys.exc_info()[0]
+				print sys.exc_info()
 				continue
 			
 			# check whether module has main() method
@@ -521,10 +521,10 @@ class IPBA2(QtGui.QMainWindow):
 			
 			self.pluginsList.append([modname, moddescr])		
 			
-	def runPlugin(self, modname, param = None):
+	def runPlugin(self, modname):
 	
 			mainMethod = getattr(sys.modules[modname], 'main')
-			newWidget = mainMethod(param)
+			newWidget = mainMethod(self.cursor, self.backup_path)
 			self.ui.mdiArea.addSubWindow(newWidget)
 			newWidget.show()		
 
@@ -549,6 +549,8 @@ class IPBA2(QtGui.QMainWindow):
 		
 		self.repairDBFiles()
 		self.readBackupArchive()
+		
+		self.runPlugin("ipba2-plugins.plg_callhistory")
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
 		

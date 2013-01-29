@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'prova_ui.ui'
 #
-# Created: Mon Jan 28 12:09:37 2013
+# Created: Tue Jan 29 11:53:19 2013
 #      by: pyside-uic 0.2.14 running on PySide 1.1.2
 #
 # WARNING! All changes made in this file will be lost!
