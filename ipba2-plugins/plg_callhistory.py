@@ -9,7 +9,7 @@ import plugins_utils
 
 class CallHistoryWidget(QtGui.QWidget):
 	
-	def __init__(self, cursor, path):
+	def __init__(self, cursor, path, daemon = False):
 		QtGui.QWidget.__init__(self)
 		
 		self.ui = Ui_CallHistory()
@@ -21,34 +21,22 @@ class CallHistoryWidget(QtGui.QWidget):
 		self.backup_path = path
 		
 		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(self.cursor, filename="call_history.db", domaintype="WirelessDomain"))
+		
+		if (daemon == False):
+			self.populateUI()
+		
 
-		# opening database
-		self.tempdb = sqlite3.connect(self.filename)
-		self.tempcur = self.tempdb.cursor() 
+	def populateUI(self):
 		
 		# populating keys tree
+		keys = self.getKeys()
 		
-		# description, field name, has to be time formatted?
-		keysList = [
-			["Call history limit", "call_history_limit", False],
-			["Last call duration", "timer_last", True],
-			["Incoming calls duration", "timer_incoming", True],
-			["Outgoing calls duration", "timer_outgoing", True],
-			["Total call duration (from reset)", "timer_all", True],
-			["Total lifetime call duration", "timer_lifetime", True],
-		]
-		
-		self.ui.keysTable.setRowCount(len(keysList))
+		self.ui.keysTable.setRowCount(len(keys))
 		
 		row = 0
-		for element in keysList:
+		for element in keys:
 			text = element[0]
-			key = element[1]
-			timeFormatted = element[2]
-			
-			value = self.readKey(key)
-			if (timeFormatted):
-				value = self.formatTime(value)
+			value = element[1]
 		
 			newItem = QtGui.QTableWidgetItem(text)
 			self.ui.keysTable.setItem(row, 0, newItem)	
@@ -61,27 +49,18 @@ class CallHistoryWidget(QtGui.QWidget):
 		self.ui.keysTable.resizeRowsToContents()
 	
 		# reading calls from database
-		query = "SELECT ROWID, address, date, duration, flags, id, name, country_code FROM call ORDER BY date"
-		self.tempcur.execute(query)
-		calls = self.tempcur.fetchall()
-		
-		# closing database
-		self.tempdb.close()
+		calls = self.getCalls()
 		
 		self.ui.callsTable.setRowCount(len(calls))
 		
 		row = 0
 		for call in calls:
+		
 			rowid = call[0]
 			address = call[1]
-			date = datetime.fromtimestamp(int(call[2]))
-			duration = self.formatTime(call[3])
-			
-			flagval = call[4]
-			if (flagval == 5): flags = "Outgoing"
-			elif (flagval == 4): flags = "Incoming"
-			else: flags = "Cancelled"
-			
+			date = call[2]
+			duration = call[3]
+			flags = call[4]
 			id = call[5]
 			name = call[6]
 			country_code = call[7]
@@ -101,6 +80,78 @@ class CallHistoryWidget(QtGui.QWidget):
 	
 		self.ui.callsTable.resizeColumnsToContents()		
 		self.ui.callsTable.resizeRowsToContents()		
+
+
+	def getKeys(self):
+
+		# opening database
+		self.tempdb = sqlite3.connect(self.filename)
+		self.tempcur = self.tempdb.cursor()
+	
+		keys = []
+
+		# description, field name, has to be time formatted?
+		keysList = [
+			["Call history limit", "call_history_limit", False],
+			["Last call duration", "timer_last", True],
+			["Incoming calls duration", "timer_incoming", True],
+			["Outgoing calls duration", "timer_outgoing", True],
+			["Total call duration (from reset)", "timer_all", True],
+			["Total lifetime call duration", "timer_lifetime", True],
+		]
+		
+		for element in keysList:
+			text = element[0]
+			key = element[1]
+			timeFormatted = element[2]
+			
+			value = self.readKey(key)
+			if (timeFormatted):
+				value = self.formatTime(value)
+		
+			keys.append([text, value])
+		
+		# closing database
+		self.tempdb.close()
+		
+		return keys
+		
+		
+	def getCalls(self):
+	
+		# opening database
+		self.tempdb = sqlite3.connect(self.filename)
+		self.tempcur = self.tempdb.cursor()
+	
+		callsToReturn = []
+	
+		# reading calls from database
+		query = "SELECT ROWID, address, date, duration, flags, id, name, country_code FROM call ORDER BY date"
+		self.tempcur.execute(query)
+		calls = self.tempcur.fetchall()
+		
+		for call in calls:
+			rowid = call[0]
+			address = call[1]
+			date = datetime.fromtimestamp(int(call[2]))
+			duration = self.formatTime(call[3])
+			
+			flagval = call[4]
+			if (flagval == 5): flags = "Outgoing"
+			elif (flagval == 4): flags = "Incoming"
+			else: flags = "Cancelled"
+			
+			id = call[5]
+			name = call[6]
+			country_code = call[7]	
+
+			callsToReturn.append([rowid, address, date, duration, flags, id, name, country_code])
+
+		# closing database
+		self.tempdb.close()
+		
+		return callsToReturn
+
 
 	def readKey(self, key):
 		query = "SELECT value FROM _SqliteDatabaseProperties WHERE key = \"%s\""%key
@@ -124,5 +175,44 @@ class CallHistoryWidget(QtGui.QWidget):
 	def setTitle(self, title):
 		self.setWindowTitle(title)
 
+
 def main(cursor, path):
 	return CallHistoryWidget(cursor, path)
+	
+def report(cursor, path):
+	
+	returnString = ""
+
+	callHistory = CallHistoryWidget(cursor, path, daemon = True)
+	keys = callHistory.getKeys()
+	calls = callHistory.getCalls()
+	del callHistory
+	
+	returnString += "<h1>Call History</h1>\n"
+	
+	returnString += "<h2>Summary</h2>\n"
+	
+	returnString += "<table><tr><th>Key</th><th>Value</th></tr>\n"
+	for key in keys:
+		returnString += "<tr><td>%s</td><td>%s</td></tr>\n"%(key[0], key[1])
+	returnString += "</table>\n"
+	
+	returnString += "<h2>Calls list</h2>\n"
+	
+	returnString += "<table><tr><th>rowid</th><th>address</th><th>date</th><th>duration</th><th>flags</th><th>id</th><th>name</th><th>country code</th></tr>\n"
+	for call in calls:
+		returnString += "<tr>"
+		returnString += "<td>%s</td>"%call[0]
+		returnString += "<td>%s</td>"%call[1]
+		returnString += "<td>%s</td>"%call[2]
+		returnString += "<td>%s</td>"%call[3]
+		returnString += "<td>%s</td>"%call[4]
+		returnString += "<td>%s</td>"%call[5]
+		returnString += "<td>%s</td>"%call[6]
+		returnString += "<td>%s</td>"%call[7]
+		returnString += "</tr>\n"
+	
+	returnString += "</table>"
+	
+	return returnString
+	

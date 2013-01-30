@@ -499,31 +499,52 @@ class IPBA2(QtGui.QMainWindow):
 			try:
 				__import__(modname)
 			except:
-				print("Error while trying to load plugin file: %s"%modname)
-				print sys.exc_info()
+				self.error("Error while trying to load plugin file: %s"%modname)
 				continue
+
+			# check whether module has PLUGIN_NAME() method (optional)
+			try:
+				moddescr = getattr(sys.modules[modname], "PLUGIN_NAME")
+				print("Loading plugin: %s - %s..."%(modname, moddescr))
+			except:
+				print("Loading plugin: %s - (name not available)..."%modname)
+				print(sys.exc_info())
+				moddescr = modname
 			
 			# check whether module has main() method
 			try:
 				getattr(sys.modules[modname], "main")
+				hasMain = True
 			except:
-				print("Error: main() method not found in plugin %s"%modname)
-				continue	
-			
-			# check whether module has PLUGIN_NAME() method (optional)
-			try:
-				moddescr = getattr(sys.modules[modname], "PLUGIN_NAME")
-				print("Loaded plugin: %s - %s"%(modname, moddescr))
-			except:
-				print("Loaded plugin: %s - (name not available)"%modname)
-				print(sys.exc_info())
-				moddescr = modname
-			
+				#print("Error: main() method not found in plugin %s"%modname)
+				hasMain = False	
+
 			# add entry to plugins menu
-			entry = self.ui.menuPlugins.addAction(moddescr)
-			self.connect(entry, QtCore.SIGNAL('triggered()'), 
-				lambda modname=modname: self.runPlugin(modname))
-				
+			if (hasMain):
+				entry = self.ui.menuPlugins.addAction(moddescr)
+				self.connect(entry, QtCore.SIGNAL('triggered()'), 
+					lambda modname=modname: self.runPlugin(modname))
+				print("- window")
+
+			# check whether module has report() method
+			try:
+				getattr(sys.modules[modname], "report")
+				hasReport = True
+			except:
+				#print("Error: report() method not found in plugin %s"%modname)
+				hasReport = False	
+
+			# add entry to reports menu
+			if (hasReport):
+				entry = self.ui.menuReports.addAction(moddescr)
+				self.connect(entry, QtCore.SIGNAL('triggered()'), 
+					lambda modname=modname: self.runReport(modname))
+				print("- report")
+			
+			if (hasReport == False and hasMain == False):
+				print("- Error: plugin %s has no useful method."%(modname))
+				continue
+			
 				
 	def runPlugin(self, modname):
 	
@@ -532,6 +553,36 @@ class IPBA2(QtGui.QMainWindow):
 			self.ui.mdiArea.addSubWindow(newWidget)
 			newWidget.show()		
 
+	def runReport(self, modname):
+	
+			reportMethod = getattr(sys.modules[modname], 'report')
+			returnString = reportMethod(self.cursor, self.backup_path)
+			
+			filename = QtGui.QFileDialog.getSaveFileName(self, "Report file", modname.split(".")[-1].split("_")[-1], ".html")			
+			filename = filename[0]
+			
+			if (len(filename) == 0):
+				return
+			
+			try:
+				file = open(filename, 'w')
+				file.write(returnString)
+				file.close()
+			except:
+				self.error("Error while trying to write report file.")
+
+
+	def error(self, text):
+		msgBox = QtGui.QMessageBox()
+		msgBox.setText(text)
+		
+		detailedText = "Type: %s"%sys.exc_info()[0].__name__
+		detailedText += "\nDescription: %s"%str(sys.exc_info()[1])
+		detailedText += "\nFile: %s"%os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+		detailedText += "\nLine: %s"%str(sys.exc_info()[2].tb_lineno)
+		
+		msgBox.setDetailedText(detailedText)
+		msgBox.exec_()		
 
 	def __init__(self, backup_path = None):
 		QtGui.QMainWindow.__init__(self, None)
@@ -759,7 +810,7 @@ class IPBA2(QtGui.QMainWindow):
 			shutil.copy(realFileName, os.path.join(exportPath, newName))
 			QtGui.QMessageBox.about(self, "Confirm", "File exported in %s."%exportPath)
 		except:
-			QtGui.QMessageBox.about(self, "Error", "Error while exporting file.")
+			self.error("Error while exporting file.")
 			
 	#-----------------------------------------------------------------------------------------------
 

@@ -142,7 +142,13 @@
      <string>Plugins</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuReports">
+    <property name="title">
+     <string>Reports</string>
+    </property>
+   </widget>
    <addaction name="menuPlugins"/>
+   <addaction name="menuReports"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
