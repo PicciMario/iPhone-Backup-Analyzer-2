@@ -1175,7 +1175,7 @@ class IPBA2(QtGui.QMainWindow):
 		)
 		
 		# starts progress window
-		progress = QtGui.QProgressDialog("Reading backup...", "Abort", 0, 2*len(mbdb.items()), self)
+		progress = QtGui.QProgressDialog("Reading backup...", "Abort", 0, 2*len(mbdb.items())/10, self)
 		progress.setMinimumDuration(0)
 		progress.setWindowModality(QtCore.Qt.WindowModal)
 		QtGui.QApplication.processEvents()
@@ -1264,7 +1264,8 @@ class IPBA2(QtGui.QMainWindow):
 				
 			# manage progress bar
 			items += 1;
-			progress.setValue(items)
+			if (items%10 == 0):
+				progress.setValue(items/10)
 
 		database.commit() 
 		
@@ -1353,7 +1354,8 @@ class IPBA2(QtGui.QMainWindow):
 						
 						# manage progress bar
 						items = items + 1
-						progress.setValue(items)
+						if (items%10 == 0):
+							progress.setValue(items/10)
 
 		
 		deviceinfo = plistutils.deviceInfo(os.path.join(self.backup_path, "Info.plist"))
