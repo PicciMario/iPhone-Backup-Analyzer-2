@@ -5,8 +5,6 @@ from whatsapp_ui import Ui_WhatsAppBrowser
 import os, sqlite3
 from datetime import datetime
 
-import html_util
-
 PLUGIN_NAME = "WhatsApp Browser"
 import plugins_utils
 
@@ -190,18 +188,6 @@ def report(cursor, path):
 	contacts = waBrowser.getContacts()
 	del waBrowser
 
-	# writes page header
-	returnString += '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"\n'
-	returnString += '"http://www.w3.org/TR/html4/loose.dtd">\n'
-	returnString += '<html><head><title>WhatsAppBrowser</title>\n'
-	returnString += '<meta name="GENERATOR" content="iPBA WhatsApp Browser">\n'
-        # adds page style
-	returnString += html_util.css_style
-        # adds javascript to make the tables sortable
-        returnString += '\n<script type="text/javascript">\n'
-        returnString += html_util.sortable
-        returnString += '</script>\n\n'
-        returnString += '</head><body>\n'
 
         # main title
 	returnString += "<h1>iPBA WhatsApp Browser</h1>\n"
@@ -239,8 +225,6 @@ def report(cursor, path):
 	
 	# TODO
 	# TODO
-	
-        # writes page footer        
-        returnString += '</body></html>\n'
+
         
 	return returnString

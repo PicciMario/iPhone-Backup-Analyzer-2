@@ -3,6 +3,7 @@ import biplist, plistlib
 from PySide import QtCore, QtGui
 
 import mbdbdecoding, plistutils, magic
+import html_util
 
 from main_window import Ui_MainWindow
 from sqlite_widget import Ui_SqliteWidget
@@ -553,10 +554,31 @@ class IPBA2(QtGui.QMainWindow):
 			self.ui.mdiArea.addSubWindow(newWidget)
 			newWidget.show()		
 
-	def runReport(self, modname):
+	def runReport(self, modname): # mario piccinelli, fabio sangiacomo
 	
-			reportMethod = getattr(sys.modules[modname], 'report')
-			returnString = reportMethod(self.cursor, self.backup_path)
+			# getting report method from selected plugin
+			try:
+				reportMethod = getattr(sys.modules[modname], 'report')
+				contentString = reportMethod(self.cursor, self.backup_path)
+			except:
+				self.error("Unable to run report function in %s"%methodname)
+				return
+			
+			# builds page header
+			headerString = ""
+			headerString += '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"\n'
+			headerString += '"http://www.w3.org/TR/html4/loose.dtd">\n'
+			headerString += '<html><head><title>WhatsAppBrowser</title>\n'
+			headerString += '<meta name="GENERATOR" content="iPBA WhatsApp Browser">\n'
+			# adds page style
+			headerString += html_util.css_style
+			# adds javascript to make the tables sortable
+			headerString += '\n<script type="text/javascript">\n'
+			headerString += html_util.sortable
+			headerString += '</script>\n\n'
+			headerString += '</head><body>\n'
+			
+			returnString = headerString + contentString + "</body></html>"
 			
 			filename = QtGui.QFileDialog.getSaveFileName(self, "Report file", modname.split(".")[-1].split("_")[-1], ".html")			
 			filename = filename[0]

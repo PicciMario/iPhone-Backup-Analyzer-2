@@ -102,7 +102,7 @@ class CallHistoryWidget(QtGui.QWidget):
 		
 		for element in keysList:
 			text = element[0]
-			key = element[1]
+			key = element[1].encode('utf-8')
 			timeFormatted = element[2]
 			
 			value = self.readKey(key)
@@ -142,7 +142,7 @@ class CallHistoryWidget(QtGui.QWidget):
 			else: flags = "Cancelled"
 			
 			id = call[5]
-			name = call[6]
+			name = call[6].encode('utf-8')
 			country_code = call[7]	
 
 			callsToReturn.append([rowid, address, date, duration, flags, id, name, country_code])
