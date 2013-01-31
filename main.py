@@ -1176,8 +1176,9 @@ class IPBA2(QtGui.QMainWindow):
 		
 		# starts progress window
 		progress = QtGui.QProgressDialog("Reading backup...", "Abort", 0, 2*len(mbdb.items())/10, self)
-		progress.setMinimumDuration(0)
 		progress.setWindowModality(QtCore.Qt.WindowModal)
+		progress.setMinimumDuration(0)
+		progress.show()
 		QtGui.QApplication.processEvents()
 		
 		# count items parsed from Manifest file
