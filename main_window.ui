@@ -147,6 +147,14 @@
      <string>Reports</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="menu_openarchive"/>
+    <addaction name="menu_closearchive"/>
+   </widget>
+   <addaction name="menuFile"/>
    <addaction name="menuPlugins"/>
    <addaction name="menuReports"/>
   </widget>
@@ -161,6 +169,9 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="menu_openarchive"/>
+   <addaction name="menu_closearchive"/>
+   <addaction name="separator"/>
    <addaction name="actionPrev"/>
    <addaction name="actionTile"/>
    <addaction name="actionNext"/>
@@ -199,6 +210,24 @@
    </property>
    <property name="toolTip">
     <string>Tile windows</string>
+   </property>
+  </action>
+  <action name="menu_openarchive">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/open.png</normaloff>:/icons/images/open.png</iconset>
+   </property>
+   <property name="text">
+    <string>Open archive</string>
+   </property>
+  </action>
+  <action name="menu_closearchive">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/close.png</normaloff>:/icons/images/close.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close archive</string>
    </property>
   </action>
  </widget>

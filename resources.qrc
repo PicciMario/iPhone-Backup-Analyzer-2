@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="icons">
+    <file>images/close.png</file>
+    <file>images/open.png</file>
     <file>images/prev.png</file>
     <file>images/tile.png</file>
     <file>images/next.png</file>

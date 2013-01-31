@@ -548,6 +548,9 @@ class IPBA2(QtGui.QMainWindow):
 			
 				
 	def runPlugin(self, modname):
+		
+			if (self.backup_path == None):
+				return
 	
 			mainMethod = getattr(sys.modules[modname], 'main')
 			newWidget = mainMethod(self.cursor, self.backup_path)
@@ -555,6 +558,9 @@ class IPBA2(QtGui.QMainWindow):
 			newWidget.show()		
 
 	def runReport(self, modname): # mario piccinelli, fabio sangiacomo
+	
+			if (self.backup_path == None):
+				return
 	
 			# getting report method from selected plugin
 			try:
@@ -606,26 +612,21 @@ class IPBA2(QtGui.QMainWindow):
 		msgBox.setDetailedText(detailedText)
 		msgBox.exec_()		
 
-	def __init__(self, backup_path = None):
+	def __init__(self):
 		QtGui.QMainWindow.__init__(self, None)
 		
 		self.ui = Ui_MainWindow()
 		self.ui.setupUi(self)
 		
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-		
-		self.backup_path = backup_path
 	
-		if (self.backup_path == None):
-			self.backup_path = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
-		
-		if (self.backup_path == None):
-			sys.exit(0)
+		# set to NONE if no backup is loaded
+		# and check its noneness to lock analysis functions
+		self.backup_path = None
+	
+		#self.openBackup()
 		
 		self.loadPlugins()
-		
-		self.repairDBFiles()
-		self.readBackupArchive()
 		
 		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
 		
@@ -637,6 +638,10 @@ class IPBA2(QtGui.QMainWindow):
 		
 		self.ui.imagePreviewLabel.hide()
 		
+		# File menu
+		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackup)
+		QtCore.QObject.connect(self.ui.menu_closearchive, QtCore.SIGNAL("triggered(bool)"), self.closeBackup)
+		
 		# attach context menu to rightclick on elements tree
 		self.ui.fileTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		self.connect(self.ui.fileTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
@@ -645,6 +650,34 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionNext.triggered.connect(self.nextWindow)
 		self.ui.actionPrev.triggered.connect(self.prevWindow)
 		self.ui.actionTile.triggered.connect(self.tileWindow)
+
+	def closeBackup(self):
+		self.backup_path = None
+		
+		# clear main UI
+		self.ui.backupInfoText.clear()
+		self.ui.fileInfoText.clear()
+		self.ui.imagePreviewLabel.clear()
+		self.ui.fileTree.clear()
+		
+	def openBackup(self):
+		self.backup_path = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
+		
+		if (self.backup_path == None):
+			return
+		if (len(self.backup_path) == 0):
+			self.backup_path = None
+			return
+		
+		# clear main UI
+		self.ui.backupInfoText.clear()
+		self.ui.fileInfoText.clear()
+		self.ui.imagePreviewLabel.clear()
+		self.ui.fileTree.clear()
+		
+		# open archive path
+		self.repairDBFiles()
+		self.readBackupArchive()
 
 	def nextWindow(self):
 		self.ui.mdiArea.activateNextSubWindow()
@@ -1140,7 +1173,13 @@ class IPBA2(QtGui.QMainWindow):
 			"property_val VARCHAR(100)" +
 			");"
 		)
-			
+		
+		# starts progress window
+		progress = QtGui.QProgressDialog("Reading backup...", "Abort", 0, 2*len(mbdb.items()), self)
+		progress.setMinimumDuration(0)
+		progress.setWindowModality(QtCore.Qt.WindowModal)
+		QtGui.QApplication.processEvents()
+		
 		# count items parsed from Manifest file
 		items = 0;
 		
@@ -1197,8 +1236,6 @@ class IPBA2(QtGui.QMainWindow):
 			query += ");"
 			self.cursor.execute(query)
 			
-			items += 1;
-			
 			# check if file has properties to store in the properties table
 			if (fileinfo['numprops'] > 0):
 		
@@ -1224,6 +1261,10 @@ class IPBA2(QtGui.QMainWindow):
 			
 				#print("File: %s, properties: %i"%(domain + ":" + filepath + "/" + filename, fileinfo['numprops']))
 				#print(fileinfo['properties'])
+				
+			# manage progress bar
+			items += 1;
+			progress.setValue(items)
 
 		database.commit() 
 		
@@ -1254,6 +1295,9 @@ class IPBA2(QtGui.QMainWindow):
 			newDomainFamily.setText(0, domain_type)
 			
 			self.ui.fileTree.addTopLevelItem(newDomainFamily)
+			
+			# show new domain family in main view
+			QtGui.QApplication.processEvents()
 			
 			# retrieve domains for the selected family
 			query = "SELECT DISTINCT(domain) FROM indice WHERE domain_type = \"%s\" ORDER BY domain" % domain_type
@@ -1306,6 +1350,10 @@ class IPBA2(QtGui.QMainWindow):
 						newFile.setText(2, str(file_dim))
 						newFile.setText(3, str(file_id))
 						self.ui.fileTree.addTopLevelItem(newFile)
+						
+						# manage progress bar
+						items = items + 1
+						progress.setValue(items)
 
 		
 		deviceinfo = plistutils.deviceInfo(os.path.join(self.backup_path, "Info.plist"))
@@ -1315,24 +1363,27 @@ class IPBA2(QtGui.QMainWindow):
 		textCursor = self.ui.backupInfoText.textCursor() 
 		textCursor.setPosition(0) 
 		self.ui.backupInfoText.setTextCursor(textCursor) 
+		
+		# clear progressbar
+		progress.setValue(progress.maximum())
 
 
 if __name__ == "__main__":
 
-	backup_path = None
+#	backup_path = None
 
 	# input parameters
-	try:
-		opts, args = getopt.getopt(sys.argv[1:], "d")
-	except getopt.GetoptError as err:
-		print("\n%s\n"%str(err))
-		sys.exit(2)
+#	try:
+#		opts, args = getopt.getopt(sys.argv[1:], "d")
+#	except getopt.GetoptError as err:
+#		print("\n%s\n"%str(err))
+#		sys.exit(2)
 	
-	for o, a in opts:
-		if o in ("-d"):
-			backup_path = "c:\Users\mario\AppData\Roaming\Apple Computer\MobileSync\Backup\\281fdc7a0d7d39e71bb8d7113f73acd97b88a751"	
+#	for o, a in opts:
+#		if o in ("-d"):
+#			backup_path = "c:\Users\mario\AppData\Roaming\Apple Computer\MobileSync\Backup\\281fdc7a0d7d39e71bb8d7113f73acd97b88a751"	
 
 	app = QtGui.QApplication(sys.argv)
-	main_ipba2_window = IPBA2(backup_path)
+	main_ipba2_window = IPBA2()
 	main_ipba2_window.show()
 	sys.exit(app.exec_())
