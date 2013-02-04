@@ -567,7 +567,7 @@ class IPBA2(QtGui.QMainWindow):
 				reportMethod = getattr(sys.modules[modname], 'report')
 				contentString = reportMethod(self.cursor, self.backup_path)
 			except:
-				self.error("Unable to run report function in %s"%methodname)
+				self.error("Unable to run report function in %s"%modname)
 				return
 			
 			# builds page header

@@ -115,7 +115,6 @@ class GeneralWidget(QtGui.QWidget):
 			newElement.setText(0, key)
 			newElement.setText(1, value)
 			self.ui.infoTree.addTopLevelItem(newElement)		
-		
 
 		# apps list (from manifest.plist)
 		
@@ -138,3 +137,38 @@ class GeneralWidget(QtGui.QWidget):
 
 def main(cursor, path):
 	return GeneralWidget(cursor, path)
+
+def report(cursor, path):
+	widget = GeneralWidget(cursor, path, True)
+	
+	phoneInfoKeys = widget.retrieveInfoKeys()
+	phoneManifestKeys = widget.retrieveManifestKeys()
+	backupKeys = widget.retrieveStatusKeys()
+	appsList = widget.retrieveApps()
+	
+	del widget
+	
+	ritorno = ""
+	ritorno += "<h1>Phone General Information</h1>"
+	
+	ritorno += "<h2>Phone Info</h2>"
+	ritorno += "<table>"
+	for element in phoneInfoKeys:
+		ritorno += "<tr><td>%s</td><td>%s</td></tr>"%(str(element[0]), str(element[1]))
+	for element in phoneManifestKeys:
+		ritorno += "<tr><td>%s</td><td>%s</td></tr>"%(str(element[0]), str(element[1]))
+	ritorno += "</table>"
+	
+	ritorno += "<h2>Backup Status</h2>"
+	ritorno += "<table>"
+	for element in backupKeys:
+		ritorno += "<tr><td>%s</td><td>%s</td></tr>"%(str(element[0]), str(element[1]))
+	ritorno += "</table>"
+
+	ritorno += "<h2>Apps List</h2>"
+	ritorno += "<table>"
+	for element in appsList:
+		ritorno += "<tr><td>%s</td><td>%s</td></tr>"%(str(element[0]), str(element[1]))
+	ritorno += "</table>"
+	
+	return ritorno
