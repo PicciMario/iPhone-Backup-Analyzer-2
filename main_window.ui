@@ -34,6 +34,9 @@
         <property name="lineWrapMode">
          <enum>QTextEdit::WidgetWidth</enum>
         </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
       <item>
@@ -105,6 +108,9 @@
           <width>250</width>
           <height>16777215</height>
          </size>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

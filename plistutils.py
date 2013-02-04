@@ -7,11 +7,11 @@
  Released under MIT licence
 
  plistutils.plist provides general functions to deal with plist files
- converted into xml format
 
 '''
 
 import os, sys, subprocess
+import plistlib, biplist
 
 # ------------------------------------------------------------------------------------------------------------------------
 
@@ -59,36 +59,29 @@ def readArray(arrayNode):
 
 # ------------------------------------------------------------------------------------------------------------------------
 
-# reads a binary plist file and returns the content in clear text format
-def readPlist(filename):
+# reads a plist file and returns the content in clear text format
+def readPlist(fileName):
+		
+	# check whether binary or plain
+	f = open(fileName, 'rb')
+	head = f.read(8)
+	f.close()
 	
-	retstring = ""
-	
-	tempfile = os.path.join(os.path.dirname(sys.argv[0]),"out.plist") #default name from perl script plutil.pl
-	command = "perl \"" + os.path.join(os.path.dirname(sys.argv[0]),"IPBAplutil.pl\"")+" \"%s\" "%filename
-	
-	os.system(command)
-
 	try:
-		retval = os.system(command)	
-	except:
-		print "Unexpected error while running command: \"%s\""%command, sys.exc_info()[1]
-		return ""
 	
-	if (retval != 0):
-		print("Return value not clear. Unable to decode data.")
-		return ""
-
-	fh = open(tempfile, 'rb')
-	while 1:
-		line = fh.readline()
-		if not line: break;
-		retstring = retstring + line
-	fh.close()	
+		# plain
+		if head != "bplist00":
+			plist = plistlib.readPlist(fileName)
+	
+		# binary
+		else:
+			plist = biplist.readPlist(fileName)		
 				
-	os.remove(tempfile)
+	except:
+		print "Unexpected error:", sys.exc_info()
+		return None
 	
-	return retstring
+	return plist
 
 # ------------------------------------------------------------------------------------------------------------------------
 
@@ -123,25 +116,14 @@ def readPlistToXml(filename):
 
 # read backup properties from passed file (Info.plist)
 
-def deviceInfo(filename):
+def deviceInfo(infoPlist_file, ):
 
-	from xml.dom.minidom import parse
-	try:
-		manifest = parse(filename)
-	except:
-		print("There was an error while parsing Manifest.plist.")
-		return {}
-
-	# <plist>
-	document = manifest.getElementsByTagName("plist")
-	# main <dict>
-	basedict = document[0].childNodes[1]
-	
-	data = readDict(basedict)
+	infoPlist = readPlist(infoPlist_file)
 
 	proplist = (
 		"Device Name",
 		"Display Name",
+		"Phone Number",
 		"GUID",
 		"ICCID",
 		"IMEI",
@@ -150,13 +132,13 @@ def deviceInfo(filename):
 		"Product Version",
 		"Serial Number",
 		"iTunes Version",
-		"Unique Identifier"		
+		"Unique Identifier"	
 	)	
 	
 	properties = {}
 	
-	for key in data.keys():
+	for key in infoPlist.keys():
 		if (key in proplist):
-			properties[key] = data[key].firstChild.toxml()
+			properties[key] = infoPlist[key]
 
 	return properties

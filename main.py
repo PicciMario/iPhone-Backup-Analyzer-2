@@ -659,21 +659,25 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileInfoText.clear()
 		self.ui.imagePreviewLabel.clear()
 		self.ui.fileTree.clear()
+		self.ui.mdiArea.closeAllSubWindows()
 		
 	def openBackup(self):
-		self.backup_path = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
+		newBackupPath = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
 		
-		if (self.backup_path == None):
+		if (newBackupPath == None):
 			return
-		if (len(self.backup_path) == 0):
-			self.backup_path = None
+
+		if (len(newBackupPath) == 0):
 			return
+		
+		self.backup_path = newBackupPath
 		
 		# clear main UI
 		self.ui.backupInfoText.clear()
 		self.ui.fileInfoText.clear()
 		self.ui.imagePreviewLabel.clear()
 		self.ui.fileTree.clear()
+		self.ui.mdiArea.closeAllSubWindows()
 		
 		# open archive path
 		self.repairDBFiles()
