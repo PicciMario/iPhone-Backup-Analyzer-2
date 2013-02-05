@@ -10,7 +10,8 @@
 
 # IMPORTS -----------------------------------------------------------------------------------------
 
-import sqlite3
+import sqlite3, sys, os
+from PySide import QtCore, QtGui
 
 # MAIN FUNCTION --------------------------------------------------------------------------------
 
@@ -29,5 +30,21 @@ def realFileName(cursor, filename="", domaintype="", path=""):
 	if (len(results) > 0):
 		return results[0][0]
 	else:
-		print("ERROR: could not find file")
 		return ""
+
+def message(text):
+	msgBox = QtGui.QMessageBox()
+	msgBox.setText(text)
+	msgBox.exec_()
+
+def error(text):
+	msgBox = QtGui.QMessageBox()
+	msgBox.setText(text)
+	
+	detailedText = "Type: %s"%sys.exc_info()[0].__name__
+	detailedText += "\nDescription: %s"%str(sys.exc_info()[1])
+	detailedText += "\nFile: %s"%os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+	detailedText += "\nLine: %s"%str(sys.exc_info()[2].tb_lineno)
+	
+	msgBox.setDetailedText(detailedText)
+	msgBox.exec_()	

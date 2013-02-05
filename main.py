@@ -554,6 +554,12 @@ class IPBA2(QtGui.QMainWindow):
 	
 			mainMethod = getattr(sys.modules[modname], 'main')
 			newWidget = mainMethod(self.cursor, self.backup_path)
+			
+			if (newWidget == None):
+				return
+			
+			print newWidget
+			
 			self.ui.mdiArea.addSubWindow(newWidget)
 			newWidget.show()		
 
