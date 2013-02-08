@@ -108,6 +108,8 @@ class AddressBookWidget(QtGui.QWidget):
 	
 		QtCore.QObject.connect(self.ui.contactsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onContactClick)
 		self.ui.contactsTree.setColumnHidden(1,True)
+		
+		self.ui.imageLabel.hide()
 	
 		contacts = self.retrieveGroups()
 		
@@ -130,6 +132,8 @@ class AddressBookWidget(QtGui.QWidget):
 				self.ui.contactsTree.addTopLevelItem(contactNode)					
 
 	def onContactClick(self):
+	
+		self.ui.imageLabel.hide()
 
 		# opening database
 		self.tempdb = sqlite3.connect(self.filename)
@@ -146,6 +150,8 @@ class AddressBookWidget(QtGui.QWidget):
 
 		contactID = int(contactID)
 		self.ui.contactsTable.clear()
+		self.ui.contactsTable.setHorizontalHeaderLabels(["Key", "Value"])
+		self.ui.contactsTable.setRowCount(100)
 		
 		# Main contact data
 		
@@ -166,6 +172,7 @@ class AddressBookWidget(QtGui.QWidget):
 		]
 		
 		row = 0
+		
 		for record in records:
 			key = record[0]
 			value = record[1]
@@ -177,7 +184,6 @@ class AddressBookWidget(QtGui.QWidget):
 				self.ui.contactsTable.setItem(row, 1, newItem)	
 
 				row = row + 1
-		
 		
 		# multivalues
 		query = "SELECT property, label, value, UID FROM ABMultiValue WHERE record_id = \"%s\""%contactID
@@ -194,7 +200,6 @@ class AddressBookWidget(QtGui.QWidget):
 		self.tempcur.execute(query)
 		multivalueentrykeys = self.tempcur.fetchall()		
 		
-
 		# print multivalues
 		for multivalue in multivalues:
 			
@@ -231,6 +236,7 @@ class AddressBookWidget(QtGui.QWidget):
 				row = row + 1
 		
 				for part in parts:
+				
 					partkey = part[0]
 					partvalue = part[1]
 					label = multivalueentrykeys[int(partkey) - 1][0]
@@ -251,17 +257,36 @@ class AddressBookWidget(QtGui.QWidget):
 				self.ui.contactsTable.setItem(row, 1, newItem)	
 				row = row + 1	
 
-
-		
-		
-		
-		
-		
-
+		self.ui.contactsTable.setRowCount(row)
 		self.ui.contactsTable.resizeColumnsToContents()		
 		self.ui.contactsTable.resizeRowsToContents()
+		self.ui.contactsTable.horizontalHeader().setStretchLastSection(True)	
 		
 		self.tempdb.close()
+		
+		# retrieve image (if available)
+		if (self.thumbsfilename != None):
+		
+			# opening database
+			self.tempdb = sqlite3.connect(self.thumbsfilename)
+			self.tempdb.row_factory = sqlite3.Row
+			self.tempcur = self.tempdb.cursor() 	
+
+			query = "SELECT data FROM ABThumbnailImage WHERE record_id = %s"%contactID
+			self.tempcur.execute(query)
+			result = self.tempcur.fetchall()
+			if (len(result) > 0):
+			
+				imagedata = str(result[0][0])
+				im = QtCore.QByteArray(imagedata)	
+				qimg = QtGui.QImage.fromData(im)
+				qpixmap = QtGui.QPixmap.fromImage(qimg).scaled(100, 100, QtCore.Qt.KeepAspectRatio)
+				
+				self.ui.imageLabel.setPixmap(qpixmap)
+				self.ui.imageLabel.show()
+
+			# closing database
+			self.tempdb.close()
 
 def main(cursor, path):
 	try:

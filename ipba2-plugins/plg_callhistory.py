@@ -47,6 +47,7 @@ class CallHistoryWidget(QtGui.QWidget):
 
 		self.ui.keysTable.resizeColumnsToContents()		
 		self.ui.keysTable.resizeRowsToContents()
+		self.ui.keysTable.horizontalHeader().setStretchLastSection(True)
 	
 		# reading calls from database
 		calls = self.getCalls()
@@ -79,7 +80,8 @@ class CallHistoryWidget(QtGui.QWidget):
 			row = row + 1
 	
 		self.ui.callsTable.resizeColumnsToContents()		
-		self.ui.callsTable.resizeRowsToContents()		
+		self.ui.callsTable.resizeRowsToContents()
+		self.ui.callsTable.horizontalHeader().setStretchLastSection(True)		
 
 
 	def getKeys(self):
