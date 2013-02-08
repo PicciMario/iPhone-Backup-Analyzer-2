@@ -21,6 +21,13 @@ class CallHistoryWidget(QtGui.QWidget):
 		self.backup_path = path
 		
 		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(self.cursor, filename="call_history.db", domaintype="WirelessDomain"))
+		self.addressbookfilename = os.path.join(self.backup_path, plugins_utils.realFileName(cursor, filename="AddressBook.sqlitedb", domaintype="HomeDomain"))
+
+		# check if files exist
+		if (not os.path.isfile(self.filename)):
+			raise Exception("Call History database not found: \"%s\""%self.filename)
+		if (not os.path.isfile(self.addressbookfilename)):
+			self.addressbookfilename = None
 		
 		if (daemon == False):
 			self.populateUI()
@@ -65,6 +72,7 @@ class CallHistoryWidget(QtGui.QWidget):
 			id = call[5]
 			name = call[6]
 			country_code = call[7]
+			addrName = call[8]
 			
 			newItem = QtGui.QTableWidgetItem(str(rowid))
 			self.ui.callsTable.setItem(row, 0, newItem)				
@@ -76,7 +84,8 @@ class CallHistoryWidget(QtGui.QWidget):
 			self.ui.callsTable.setItem(row, 3, newItem)	
 			newItem = QtGui.QTableWidgetItem(flags)
 			self.ui.callsTable.setItem(row, 4, newItem)	
-			
+			newItem = QtGui.QTableWidgetItem(addrName)
+			self.ui.callsTable.setItem(row, 5, newItem)				
 			row = row + 1
 	
 		self.ui.callsTable.resizeColumnsToContents()		
@@ -146,12 +155,41 @@ class CallHistoryWidget(QtGui.QWidget):
 			id = call[5]
 			name = call[6].encode('utf-8')
 			country_code = call[7]	
+			
+			addrName = ""
+	
+			# check if can find name in address book
+			if (self.addressbookfilename != None and id != -1):
 
-			callsToReturn.append([rowid, address, date, duration, flags, id, name, country_code])
+				# opening database
+				self.tempaddrdb = sqlite3.connect(self.addressbookfilename)
+				self.tempaddrcur = self.tempaddrdb.cursor()
+					
+				query = "SELECT First, Last, Organization FROM ABPerson WHERE ROWID = ?;"
+				self.tempaddrcur.execute(query, (id,))
+				addrQuery = self.tempaddrcur.fetchall()			
+				
+				if (len(addrQuery) > 0):
+					
+					addrFirst = addrQuery[0][0]
+					addrLast = addrQuery[0][1]
+					addrOrganization = addrQuery[0][2]
+				
+					if (addrFirst != None):
+						addrName = addrFirst + " "
+					if (addrLast != None):
+						addrName = addrName + addrLast
+					if (addrFirst == None and addrLast == None):
+						addrName = addrOrganization				
+				
+				# closing database
+				self.tempaddrdb.close()		
+
+			callsToReturn.append([rowid, address, date, duration, flags, id, name, country_code, addrName])
 
 		# closing database
-		self.tempdb.close()
-		
+		self.tempdb.close()				
+			
 		return callsToReturn
 
 
@@ -201,7 +239,7 @@ def report(cursor, path):
 	
 	returnString += "<h2>Calls list</h2>\n"
 	
-	returnString += "<table><tr><th>rowid</th><th>address</th><th>date</th><th>duration</th><th>flags</th><th>id</th><th>name</th><th>country code</th></tr>\n"
+	returnString += "<table><tr><th>rowid</th><th>address</th><th>date</th><th>duration</th><th>flags</th><th>id</th><th>name</th><th>country code</th><th>Name (from address book)</th></tr>\n"
 	for call in calls:
 		returnString += "<tr>"
 		returnString += "<td>%s</td>"%call[0]
@@ -212,6 +250,7 @@ def report(cursor, path):
 		returnString += "<td>%s</td>"%call[5]
 		returnString += "<td>%s</td>"%call[6]
 		returnString += "<td>%s</td>"%call[7]
+		returnString += "<td>%s</td>"%call[8]
 		returnString += "</tr>\n"
 	
 	returnString += "</table>"
