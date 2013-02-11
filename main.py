@@ -1,16 +1,54 @@
-import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
-import biplist, plistlib
-from PySide import QtCore, QtGui
+#!/usr/bin/env python
 
+'''
+ iPhone Backup Analyzer 2
+
+ (C)opyright 2013 Mario Piccinelli <mario.piccinelli@gmail.com>
+ Released under MIT licence
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+
+'''
+
+# --- GENERIC IMPORTS -----------------------------------------------------------------------------
+
+import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
 import mbdbdecoding, plistutils, magic
+
+# homemade library to build html reports
 import html_util
 
+# libraries to deal with PLIST files
+import biplist, plistlib
+
+# PySide QT graphic libraries
+from PySide import QtCore, QtGui
+
+# UIs for base viewers
 from main_window import Ui_MainWindow
 from sqlite_widget import Ui_SqliteWidget
 from image_widget import Ui_ImageWidget
 from hex_widget import Ui_HexWidget
 from text_widget import Ui_TextWidget
 from plist_widget import Ui_PlistWidget
+
+# --- END IMPORTS --------------------------------------------------------------------------------
 
 class PlistWidget(QtGui.QWidget):
 	
@@ -83,7 +121,7 @@ class PlistWidget(QtGui.QWidget):
 			titleNode.setText(0, content)
 			self.ui.plistTree.addTopLevelItem(titleNode)
 
-	
+# ------------------------------------------------------------------------------------------------
 
 class TextWidget(QtGui.QWidget):
 
@@ -113,7 +151,7 @@ class TextWidget(QtGui.QWidget):
 	def setTitle(self, title):
 		self.setWindowTitle(title)
 
-
+# ------------------------------------------------------------------------------------------------
 
 class HexWidget(QtGui.QWidget):
 
@@ -216,6 +254,7 @@ class HexWidget(QtGui.QWidget):
 		self.page = 0
 		self.updateTable()	
 
+# ------------------------------------------------------------------------------------------------
 
 class ImageWidget(QtGui.QWidget):
 
@@ -279,6 +318,7 @@ class ImageWidget(QtGui.QWidget):
 	def setTitle(self, title):
 		self.setWindowTitle(title)
 
+# ------------------------------------------------------------------------------------------------
 
 class SqliteWidget(QtGui.QWidget):
 
@@ -476,7 +516,8 @@ class SqliteWidget(QtGui.QWidget):
 			seltabledb.close()
 			self.ui.tableContent.resizeColumnsToContents()	
 			self.ui.tableContent.resizeRowsToContents()
-		
+
+# ------------------------------------------------------------------------------------------------
 		
 class IPBA2(QtGui.QMainWindow):
 
@@ -1380,21 +1421,9 @@ class IPBA2(QtGui.QMainWindow):
 		# clear progressbar
 		progress.setValue(progress.maximum())
 
+# ------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-
-#	backup_path = None
-
-	# input parameters
-#	try:
-#		opts, args = getopt.getopt(sys.argv[1:], "d")
-#	except getopt.GetoptError as err:
-#		print("\n%s\n"%str(err))
-#		sys.exit(2)
-	
-#	for o, a in opts:
-#		if o in ("-d"):
-#			backup_path = "c:\Users\mario\AppData\Roaming\Apple Computer\MobileSync\Backup\\281fdc7a0d7d39e71bb8d7113f73acd97b88a751"	
 
 	app = QtGui.QApplication(sys.argv)
 	main_ipba2_window = IPBA2()
