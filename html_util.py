@@ -26,6 +26,8 @@ table {
 }
 th {
     font-style:italic;
+	border: 1px solid gray;
+	padding: 2px;
 }
 td {
 	border: 1px solid gray;

@@ -171,4 +171,4 @@ def report(cursor, path):
 		ritorno += "<tr><td>%s</td><td>%s</td></tr>"%(str(element[0]), str(element[1]))
 	ritorno += "</table>"
 	
-	return ritorno
+	return (ritorno, None)

@@ -227,4 +227,4 @@ def report(cursor, path):
 	# TODO
 
         
-	return returnString
+	return (returnString, None)

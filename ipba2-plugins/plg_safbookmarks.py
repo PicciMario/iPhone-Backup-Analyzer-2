@@ -130,4 +130,4 @@ def report(cursor, path):
 	ritorno = "<h1>Safari Bookmarks</h1>"
 	ritorno += safBookManager.printBookmark(0)
 	del safBookManager
-	return ritorno
+	return (ritorno, None)

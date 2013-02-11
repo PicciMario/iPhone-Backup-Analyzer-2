@@ -255,5 +255,5 @@ def report(cursor, path):
 	
 	returnString += "</table>"
 	
-	return returnString
+	return (returnString, None)
 	
