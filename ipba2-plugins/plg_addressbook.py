@@ -12,6 +12,11 @@ import plugins_utils
 import plistutils
 
 class AddressBookWidget(QtGui.QWidget):
+
+	def clearHtml(self, text):
+		if (text == None):
+			text = "<None>"
+		return text.encode('ascii', "xmlcharrefreplace")
 	
 	def __init__(self, cursor, path, daemon = False):
 		QtGui.QWidget.__init__(self)
@@ -288,6 +293,153 @@ class AddressBookWidget(QtGui.QWidget):
 			# closing database
 			self.tempdb.close()
 
+
+	def contactsList(self):
+	
+		peopleData = []
+
+		# opening database
+		self.tempdb = sqlite3.connect(self.filename)
+		self.tempdb.row_factory = sqlite3.Row
+		self.tempcur = self.tempdb.cursor() 
+		
+		# acquire multivalue labels (just once)
+		query = "SELECT value FROM ABMultiValueLabel"
+		self.tempcur.execute(query)
+		multivaluelabels = self.tempcur.fetchall()
+
+		# acquire multivalue labels keys (just once)
+		query = "SELECT value FROM ABMultiValueEntryKey"
+		self.tempcur.execute(query)
+		multivalueentrykeys = self.tempcur.fetchall()			
+		
+		# retrieve people list
+		query = 'SELECT * FROM ABPerson;'
+		self.tempcur.execute(query)
+		people = self.tempcur.fetchall()
+
+		for person in people:
+			
+			personData = []
+			
+			contactID = person['ROWID']
+
+			# complete name
+			if (person['First'] != None):
+				name = person['First']
+			if (person['Last'] != None):
+				name = name + " " + person['Last']
+			if (person['First'] == None and person['Last'] == None):
+				name = person['Organization']	
+			if (name == None):
+				name = "<None>"
+			personData.append(["Full name", self.clearHtml(name)])
+			
+					
+			records = [
+				["First name", person['First']],
+				["Last name", person['Last']],
+				["Organization", person['Organization']],
+				["Middle name", person['Middle']],
+				["Department", person['Department']],
+				["Note", person['Note']],
+				["Birthday", person['Birthday']],
+				["Job Title", person['JobTitle']],
+				["Nickname", person['Nickname']],
+			]
+			
+			for record in records: 				
+				if (record[1] != None):
+					personData.append([self.clearHtml(record[0]), self.clearHtml(record[1])])
+					
+			# multivalues
+			query = "SELECT property, label, value, UID FROM ABMultiValue WHERE record_id = \"%s\""%contactID
+			self.tempcur.execute(query)
+			multivalues = self.tempcur.fetchall()
+		
+			# print multivalues
+			for multivalue in multivalues:
+				
+				# decode multivalue type
+				if (multivalue[0] == 3):	
+					property = "Phone number"
+				elif (multivalue[0] == 4):
+					property = "EMail address"
+				elif (multivalue[0] == 5):
+					property = "Multivalue"
+				elif (multivalue[0] == 22):
+					property = "URL"
+				else: 
+					property = "Unknown (%s)"%multivalue[0]
+				
+				# decode multivalue label
+				label = ""
+				if (multivalue[1] != None):
+					label = multivaluelabels[int(multivalue[1]) - 1][0]
+					label = lstrip(label, "_!<$")
+					label = rstrip(label, "_!>$")
+				
+				value = multivalue[2]
+				
+				# if multivalue is multipart (an address)...
+				if (multivalue[0] == 5):
+					multivalueid = multivalue[3]
+					query = "SELECT KEY, value FROM ABMultiValueEntry WHERE parent_id = \"%i\" ORDER BY key"%multivalueid
+					self.tempcur.execute(query)
+					parts = self.tempcur.fetchall()
+					
+					multipartKey = "Address (%s):"%self.clearHtml(label)
+			
+					multipartValue = ""
+					for part in parts:
+					
+						partkey = part[0]
+						partValue = part[1]
+						label = multivalueentrykeys[int(partkey) - 1][0]
+						
+						multipartValue += "%s: %s<br>"%(self.clearHtml(label), self.clearHtml(partValue))
+
+					personData.append([multipartKey, multipartValue])
+					
+				else:				
+					personData.append(["%s (%s)"%(self.clearHtml(property), self.clearHtml(label)), self.clearHtml(value)])
+			
+
+			# retrieve image (if available)
+			if (False):#(self.thumbsfilename != None):
+			
+				# opening database
+				self.tempdb = sqlite3.connect(self.thumbsfilename)
+				self.tempdb.row_factory = sqlite3.Row
+				self.tempcur = self.tempdb.cursor() 	
+
+				query = "SELECT data FROM ABThumbnailImage WHERE record_id = %s"%contactID
+				self.tempcur.execute(query)
+				result = self.tempcur.fetchall()
+				if (len(result) > 0):
+				
+					imagedata = str(result[0][0])
+					im = QtCore.QByteArray(imagedata)	
+					qimg = QtGui.QImage.fromData(im)
+					qpixmap = QtGui.QPixmap.fromImage(qimg).scaled(100, 100, QtCore.Qt.KeepAspectRatio)
+					
+					self.ui.imageLabel.setPixmap(qpixmap)
+					self.ui.imageLabel.show()
+
+				# closing database
+				self.tempdb.close()
+
+		
+			peopleData.append(personData)
+		
+		self.tempdb.close()
+		
+		return peopleData
+			
+		
+
+
+
 def main(cursor, path):
 	try:
 		return AddressBookWidget(cursor, path)
@@ -297,4 +449,22 @@ def main(cursor, path):
 		
 def report(cursor, path):
 	widget = AddressBookWidget(cursor, path, True)
-	return ""
+	peopleData = widget.contactsList()
+	
+	ritorno = ""
+	ritorno += "<h1>Address Book</h1>"
+	
+	ritorno += "<ul>"
+	
+	for person in peopleData:
+		ritorno += "<li>"
+		ritorno += person[0][1]
+		ritorno += "<table>"
+		for element in person[1:]:
+			ritorno += "<tr><td>%s</td><td>%s</td></tr>"%(element[0], element[1])
+		ritorno += "</table>"
+		ritorno += "</li>"
+	
+	ritorno += "</ul>"
+	
+	return (ritorno, None)

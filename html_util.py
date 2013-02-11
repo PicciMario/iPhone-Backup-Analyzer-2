@@ -19,10 +19,17 @@ h3 {
     font-style:italic;
 }
 table {
-    text-align: center;
+    text-align: left;
+	border: 1px solid gray;
+	align: left;
+	border-collapse: collapse;
 }
 th {
     font-style:italic;
+}
+td {
+	border: 1px solid gray;
+	padding: 2px;
 }
 td.text {
     width: 600px;
@@ -43,6 +50,7 @@ tr.other {
 tr.newgroupname {
     background-color: #FFCC33;
 }
+
 </style>
 """
 
