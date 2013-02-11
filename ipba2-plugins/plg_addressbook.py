@@ -297,6 +297,7 @@ class AddressBookWidget(QtGui.QWidget):
 	def contactsList(self):
 	
 		peopleData = []
+		additionalResources = []
 
 		# opening database
 		self.tempdb = sqlite3.connect(self.filename)
@@ -406,35 +407,38 @@ class AddressBookWidget(QtGui.QWidget):
 			
 
 			# retrieve image (if available)
-			if (False):#(self.thumbsfilename != None):
+			if (self.thumbsfilename != None):
 			
 				# opening database
-				self.tempdb = sqlite3.connect(self.thumbsfilename)
-				self.tempdb.row_factory = sqlite3.Row
-				self.tempcur = self.tempdb.cursor() 	
+				self.tempThumbDb = sqlite3.connect(self.thumbsfilename)
+				self.tempThumbDb.row_factory = sqlite3.Row
+				self.tempThumbCur = self.tempThumbDb.cursor() 	
 
 				query = "SELECT data FROM ABThumbnailImage WHERE record_id = %s"%contactID
-				self.tempcur.execute(query)
-				result = self.tempcur.fetchall()
+				self.tempThumbCur.execute(query)
+				result = self.tempThumbCur.fetchall()
 				if (len(result) > 0):
 				
-					imagedata = str(result[0][0])
-					im = QtCore.QByteArray(imagedata)	
-					qimg = QtGui.QImage.fromData(im)
-					qpixmap = QtGui.QPixmap.fromImage(qimg).scaled(100, 100, QtCore.Qt.KeepAspectRatio)
-					
-					self.ui.imageLabel.setPixmap(qpixmap)
-					self.ui.imageLabel.show()
+					imageData = str(result[0][0])
+					tempFile = plugins_utils.pluginTempFile()
 
+					writer = open(tempFile, 'wb')
+					writer.write(imageData)
+					writer.close()
+					
+					additionalResources.append([tempFile, "%i.bmp"%contactID])
+					
+					personData.append(["Photo", '<img src="%s" \>'%os.path.join("$IPBA2RESOURCESPATH$", "%i.bmp"%contactID)])
+					
 				# closing database
-				self.tempdb.close()
+				self.tempThumbDb.close()
 
 		
 			peopleData.append(personData)
 		
 		self.tempdb.close()
 		
-		return peopleData
+		return (peopleData, additionalResources)
 			
 		
 
@@ -449,7 +453,7 @@ def main(cursor, path):
 		
 def report(cursor, path):
 	widget = AddressBookWidget(cursor, path, True)
-	peopleData = widget.contactsList()
+	peopleData, files = widget.contactsList()
 	
 	ritorno = ""
 	ritorno += "<h1>Address Book</h1>"
@@ -467,4 +471,4 @@ def report(cursor, path):
 	
 	ritorno += "</ul>"
 	
-	return (ritorno, None)
+	return (ritorno, files)

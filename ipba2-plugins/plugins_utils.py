@@ -48,3 +48,19 @@ def error(text):
 	
 	msgBox.setDetailedText(detailedText)
 	msgBox.exec_()	
+
+def pluginsTempDir():
+	tempDir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp")
+	if (not os.path.isdir(tempDir)):
+		os.makedirs(tempDir)
+	return tempDir
+
+def pluginTempFile():
+	dir = pluginsTempDir()
+	base = "pluginTmp"
+	index = 0
+	fileName = os.path.join(dir, "%s%03i"%(base, index))
+	while (os.path.isfile(fileName)):
+		fileName = os.path.join(dir, "%s%03i"%(base, index))
+		index += 1
+	return fileName

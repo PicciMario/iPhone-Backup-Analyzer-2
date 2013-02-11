@@ -631,14 +631,38 @@ class IPBA2(QtGui.QMainWindow):
 			headerString += '</script>\n\n'
 			headerString += '</head><body>\n'
 			
-			returnString = headerString + contentString + "</body></html>"
-			
-			filename = QtGui.QFileDialog.getSaveFileName(self, "Report file", modname.split(".")[-1].split("_")[-1], ".html")			
+			filename = QtGui.QFileDialog.getSaveFileName(self, "Report file", modname.split(".")[-1].split("_")[-1], ".html")		
 			filename = filename[0]
 			
 			if (len(filename) == 0):
 				return
 			
+			# manage external resources for reports
+			if (files):
+				
+				if (len(files)>0):
+				
+					# create path for resources
+					resourcesIndex = 0
+					baseResourcesPath = modname.split(".")[-1].split("_")[-1]
+					resourcesPath = os.path.join(os.path.dirname(filename), )
+					while (os.path.isdir(resourcesPath)):
+						resourcesIndex += 1
+						resourcesPath = os.path.join(os.path.dirname(filename), "%s%03i"%(baseResourcesPath, resourcesIndex))
+					os.makedirs(resourcesPath)
+				
+					# copy files in resource path
+					# each file is [effective-filename-with-abs-path, realfilename.ext]
+					for file in files:					
+						shutil.copyfile(file[0], os.path.join(resourcesPath, file[1]))
+						
+					# in report body, overwrites each occurrence of $IPBA2RESOURCESPATH$ with the real name of the resources dir
+					contentString = contentString.replace("$IPBA2RESOURCESPATH$", "%s%03i"%(baseResourcesPath, resourcesIndex))
+			
+			# finish building output
+			returnString = headerString + contentString + "</body></html>"			
+			
+			# write output
 			try:
 				file = open(filename, 'w')
 				file.write(returnString)
