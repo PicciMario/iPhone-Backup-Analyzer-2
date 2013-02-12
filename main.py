@@ -1199,12 +1199,15 @@ class IPBA2(QtGui.QMainWindow):
 
 		# if not file, stop here
 		if (item_type != "-"): return
-
-		# if image, draw preview
+		
+		# check file magic
 		realFileName = os.path.join(self.backup_path, item_filecode)
 		filemagic = self.readMagic(realFileName)
+		self.ui.fileInfoText.append("")
+		self.ui.fileInfoText.append("<strong>File type (from header data)</strong>: " + filemagic)
+
+		# if image, draw preview
 		view = self.ui.imagePreviewLabel
-		
 		if (filemagic.partition("/")[0] == "image"):
 			pic = QtGui.QPixmap(realFileName).scaled(200, 200, QtCore.Qt.KeepAspectRatio)	
 			view.setPixmap(pic) 
