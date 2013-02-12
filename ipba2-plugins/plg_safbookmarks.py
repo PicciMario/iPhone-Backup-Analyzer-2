@@ -23,8 +23,7 @@ class SafBookmarksWidget(QtGui.QWidget):
 		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(self.cursor, filename="Bookmarks.db", domaintype="HomeDomain"))
 
 		if (not os.path.isfile(self.filename)):
-			print("File not found for Safari Bookmarks database")
-			return
+			raise Exception("Safari Bookmarks Database not found: \"%s\""%self.filename)
 		
 		if (daemon == False):
 			self.populateUI()

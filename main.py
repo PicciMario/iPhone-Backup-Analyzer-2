@@ -592,8 +592,12 @@ class IPBA2(QtGui.QMainWindow):
 			if (self.backup_path == None):
 				return
 	
-			mainMethod = getattr(sys.modules[modname], 'main')
-			newWidget = mainMethod(self.cursor, self.backup_path)
+			try:
+				mainMethod = getattr(sys.modules[modname], 'main')
+				newWidget = mainMethod(self.cursor, self.backup_path)
+			except:
+				self.error("Unable to run plugin %s"%modname)
+				return
 			
 			if (newWidget == None):
 				return
