@@ -53,7 +53,7 @@ from plist_widget import Ui_PlistWidget
 class PlistWidget(QtGui.QWidget):
 	
 	def __init__(self, fileName = None):
-		QtGui.QWidget.__init__(self)
+		super(PlistWidget, self).__init__(None)
 		
 		self.ui = Ui_PlistWidget()
 		self.ui.setupUi(self)
@@ -126,7 +126,7 @@ class PlistWidget(QtGui.QWidget):
 class TextWidget(QtGui.QWidget):
 
 	def __init__(self, fileName = None):
-		QtGui.QWidget.__init__(self)
+		super(TextWidget, self).__init__(None)
 		
 		self.ui = Ui_TextWidget()
 		self.ui.setupUi(self)
@@ -183,7 +183,7 @@ class HexWidget(QtGui.QWidget):
 		self.setWindowTitle(title)
 
 	def __init__(self, fileName = None):
-		QtGui.QWidget.__init__(self)
+		super(HexWidget, self).__init__(None)
 		
 		self.ui = Ui_HexWidget()
 		self.ui.setupUi(self)
@@ -259,7 +259,7 @@ class HexWidget(QtGui.QWidget):
 class ImageWidget(QtGui.QWidget):
 
 	def __init__(self, fileName = None):
-		QtGui.QWidget.__init__(self)
+		super(ImageWidget, self).__init__(None)
 		
 		self.ui = Ui_ImageWidget()
 		self.ui.setupUi(self)
@@ -342,7 +342,7 @@ class SqliteWidget(QtGui.QWidget):
 
 
 	def __init__(self, fileName = None):
-		QtGui.QWidget.__init__(self)
+		super(SqliteWidget, self).__init__(None)
 		
 		self.ui = Ui_SqliteWidget()
 		self.ui.setupUi(self)
@@ -521,7 +521,6 @@ class SqliteWidget(QtGui.QWidget):
 		
 class IPBA2(QtGui.QMainWindow):
 
-
 	def loadPlugins(self):
 	
 		pluginsPackage = "ipba2-plugins"
@@ -598,11 +597,15 @@ class IPBA2(QtGui.QMainWindow):
 			
 			if (newWidget == None):
 				return
+				
+			subWindow = QtGui.QMdiSubWindow()
+			subWindow.setWidget(newWidget)
+			subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+			self.ui.mdiArea.addSubWindow(subWindow)
+			subWindow.show()
 			
-			print newWidget
-			
-			self.ui.mdiArea.addSubWindow(newWidget)
-			newWidget.show()		
+#			self.ui.mdiArea.addSubWindow(newWidget)
+#			newWidget.show()		
 
 	def runReport(self, modname): # mario piccinelli, fabio sangiacomo
 	
@@ -684,7 +687,7 @@ class IPBA2(QtGui.QMainWindow):
 		msgBox.exec_()		
 
 	def __init__(self):
-		QtGui.QMainWindow.__init__(self, None)
+		super(IPBA2, self).__init__(None)
 		
 		self.ui = Ui_MainWindow()
 		self.ui.setupUi(self)
@@ -839,9 +842,14 @@ class IPBA2(QtGui.QMainWindow):
 	
 		newWidget = SqliteWidget(realFileName)
 		newWidget.setTitle(element['file_name'] + " - SQLite Browser")
-		self.ui.mdiArea.addSubWindow(newWidget)
-		newWidget.show()
-
+#		self.ui.mdiArea.addSubWindow(newWidget, QtCore.Qt.SubWindow)
+#		newWidget.show()
+		subWindow = QtGui.QMdiSubWindow()
+		subWindow.setWidget(newWidget)
+		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		self.ui.mdiArea.addSubWindow(subWindow)
+		subWindow.show()
+		
 	def openSelectedPlist(self):
 		
 		# managing "standard" files
@@ -860,8 +868,13 @@ class IPBA2(QtGui.QMainWindow):
 	
 		newWidget = PlistWidget(realFileName)
 		newWidget.setTitle(title)
-		self.ui.mdiArea.addSubWindow(newWidget)
-		newWidget.show()
+#		self.ui.mdiArea.addSubWindow(newWidget, QtCore.Qt.SubWindow)
+#		newWidget.show()
+		subWindow = QtGui.QMdiSubWindow()
+		subWindow.setWidget(newWidget)
+		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		self.ui.mdiArea.addSubWindow(subWindow)
+		subWindow.show()
 
 	def openSelectedImage(self):
 		
@@ -872,9 +885,14 @@ class IPBA2(QtGui.QMainWindow):
 	
 		newWidget = ImageWidget(realFileName)
 		newWidget.setTitle(element['file_name'] + " - Image Viewer")
-		self.ui.mdiArea.addSubWindow(newWidget)
-		newWidget.show()	
-
+#		self.ui.mdiArea.addSubWindow(newWidget, QtCore.Qt.SubWindow)
+#		newWidget.show()	
+		subWindow = QtGui.QMdiSubWindow()
+		subWindow.setWidget(newWidget)
+		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		self.ui.mdiArea.addSubWindow(subWindow)
+		subWindow.show()
+			
 	def openSelectedHex(self):
 	
 		# managing "standard" files
@@ -893,9 +911,14 @@ class IPBA2(QtGui.QMainWindow):
 	
 		newWidget = HexWidget(realFileName)
 		newWidget.setTitle(title)
-		self.ui.mdiArea.addSubWindow(newWidget)
-		newWidget.show()
-
+#		self.ui.mdiArea.addSubWindow(newWidget, QtCore.Qt.SubWindow)
+#		newWidget.show()
+		subWindow = QtGui.QMdiSubWindow()
+		subWindow.setWidget(newWidget)
+		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		self.ui.mdiArea.addSubWindow(subWindow)
+		subWindow.show()
+			
 	def openSelectedText(self):
 	
 		# managing "standard" files
@@ -914,9 +937,14 @@ class IPBA2(QtGui.QMainWindow):
 	
 		newWidget = TextWidget(realFileName)
 		newWidget.setTitle(title)
-		self.ui.mdiArea.addSubWindow(newWidget)
-		newWidget.show()
-
+#		self.ui.mdiArea.addSubWindow(newWidget, QtCore.Qt.SubWindow)
+#		newWidget.show()
+		subWindow = QtGui.QMdiSubWindow()
+		subWindow.setWidget(newWidget)
+		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		self.ui.mdiArea.addSubWindow(subWindow)
+		subWindow.show()
+			
 	def exportSelectedFile(self):
 	
 		# managing "standard" files
