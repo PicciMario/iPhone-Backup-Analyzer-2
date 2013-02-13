@@ -238,7 +238,8 @@ class AddressBookWidget(QtGui.QWidget):
 
 				newItem = QtGui.QTableWidgetItem("Address (%s):"%label)
 				self.ui.contactsTable.setItem(row, 0, newItem)	
-				row = row + 1
+		
+				multipartText = ""
 		
 				for part in parts:
 				
@@ -246,13 +247,12 @@ class AddressBookWidget(QtGui.QWidget):
 					partvalue = part[1]
 					label = multivalueentrykeys[int(partkey) - 1][0]
 					
-					newItem = QtGui.QTableWidgetItem(label)
-					newItem.setBackground(QtCore.Qt.lightGray)
-					self.ui.contactsTable.setItem(row, 0, newItem)	
-					newItem = QtGui.QTableWidgetItem(partvalue)
-					newItem.setBackground(QtCore.Qt.lightGray)
-					self.ui.contactsTable.setItem(row, 1, newItem)	
-					row = row + 1					
+					multipartText += "%s: %s\n"%(label, partvalue)	
+				
+				newItem = QtGui.QTableWidgetItem(multipartText)
+				self.ui.contactsTable.setItem(row, 1, newItem)				
+				
+				row = row + 1					
 				
 			else:
 			
