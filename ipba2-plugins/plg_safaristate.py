@@ -76,10 +76,6 @@ class SafariStateWidget(QtGui.QWidget):
 			action1 = QtGui.QAction("Open in browser", self)
 			action1.triggered.connect(self.openSelectedURL)
 			menu.addAction(action1)
-		else:
-			action1 = QtGui.QAction("Open in browser", self)
-			action1.triggered.connect(self.openSelectedChildURL)
-			menu.addAction(action1)
 			
 		menu.exec_(self.ui.listTree.mapToGlobal(pos));
 	
@@ -101,16 +97,6 @@ class SafariStateWidget(QtGui.QWidget):
 		else: return
 	
 		url = currentSelectedElement.text(0)
-		
-		QtGui.QDesktopServices.openUrl(url)
-
-	def openSelectedChildURL(self):
-	
-		currentSelectedElement = self.ui.listTree.currentItem()
-		if (currentSelectedElement): pass
-		else: return
-	
-		url = currentSelectedElement.text(1)
 		
 		QtGui.QDesktopServices.openUrl(url)
 		
@@ -141,7 +127,6 @@ class SafariStateWidget(QtGui.QWidget):
 
 			titleElement = QtGui.QTreeWidgetItem(None)
 			titleElement.setText(0, title)
-			titleElement.setText(1, element[''])
 			self.ui.listTree.addTopLevelItem(titleElement)
 
 			urlElement = QtGui.QTreeWidgetItem(titleElement)
