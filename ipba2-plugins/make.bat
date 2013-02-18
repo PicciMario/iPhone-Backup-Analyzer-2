@@ -6,3 +6,4 @@ pyside-uic addressbook_ui.ui > addressbook_ui.py
 pyside-uic networkident_ui.ui > networkident_ui.py
 pyside-uic safaristate_ui.ui > safaristate_ui.py
 pyside-uic thumbsbrowser_ui.ui > thumbsbrowser_ui.py
+pyside-uic sms_ui.ui > sms_ui.py

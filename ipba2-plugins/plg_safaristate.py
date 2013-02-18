@@ -35,6 +35,8 @@ class SafariStateWidget(QtGui.QWidget):
 		
 		self.ui.documentsTree.setColumnHidden(0,True)
 		self.ui.documentsTree.setColumnWidth(1,150)
+		
+		self.ui.thumbLabel.hide()
 
 		if (daemon == False):
 			self.populateUI()
