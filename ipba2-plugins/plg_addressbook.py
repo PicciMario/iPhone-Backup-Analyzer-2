@@ -476,11 +476,8 @@ class AddressBookWidget(QtGui.QWidget):
 
 
 def main(cursor, path):
-	try:
-		return AddressBookWidget(cursor, path)
-	except:
-		plugins_utils.error("Unable to open Contacts file in backup archive.")
-		return None
+	return AddressBookWidget(cursor, path)
+
 		
 def report(cursor, path):
 	widget = AddressBookWidget(cursor, path, True)
