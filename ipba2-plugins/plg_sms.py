@@ -152,7 +152,7 @@ class SMSWidget(QtGui.QWidget):
 		tempdb.row_factory = sqlite3.Row
 		tempcur = tempdb.cursor()
 
-		query = 'SELECT ROWID, text, date, is_from_me, cache_has_attachments FROM message INNER JOIN chat_message_join ON message.ROWID = chat_message_join.message_id WHERE chat_id = ?;'
+		query = 'SELECT ROWID, text, date, is_from_me, cache_has_attachments, service FROM message INNER JOIN chat_message_join ON message.ROWID = chat_message_join.message_id WHERE chat_id = ?;'
 		tempcur.execute(query, (currentChat,))
 		messages = tempcur.fetchall()
 		
@@ -161,19 +161,33 @@ class SMSWidget(QtGui.QWidget):
 		# prepare table with enough rows
 		# each message is a row, but each attachment also counts as one
 		# so, we make an educated guess
-		maxRows = len(messages) * 2
+		maxRows = len(messages) * 3
 		if (maxRows < 100):
-			maxRows += 100
+			maxRows += 300
 		
 		self.ui.messageTable.setRowCount(maxRows)
 		self.ui.messageTable.setColumnCount(2)
 		self.ui.messageTable.setHorizontalHeaderLabels(["Date", "Text"])
 		
 		row = 0
+		lastDate = ""
 		for message in messages:
 			
-			documentTimestamp = message['date'] + 978307200 #JAN 1 1970
-			documentTimestamp = datetime.fromtimestamp(documentTimestamp).strftime('%Y-%m-%d %H:%M:%S')
+			documentTimestampUnix = message['date'] + 978307200 #JAN 1 1970
+			documentTimestamp = datetime.fromtimestamp(documentTimestampUnix).strftime('%Y-%m-%d %H:%M:%S')
+			
+			# separator on date change
+			actualDate = datetime.fromtimestamp(documentTimestampUnix).strftime("%Y-%m-%d")
+			if (actualDate != lastDate):
+				lastDate = actualDate
+				newItem = QtGui.QTableWidgetItem(actualDate)	
+				newItem.setBackground(QtCore.Qt.yellow)
+				self.ui.messageTable.setItem(row, 0, newItem)
+				newItem = QtGui.QTableWidgetItem()	
+				#newItem.setBackground(QtCore.Qt.yellow)
+				self.ui.messageTable.setItem(row, 1, newItem)			
+				row += 1
+			
 			if (message['is_from_me'] == 1):
 				documentTimestamp = "Sent on:\n" + documentTimestamp
 			else:
@@ -182,10 +196,15 @@ class SMSWidget(QtGui.QWidget):
 			self.ui.messageTable.setItem(row, 0, newItem)
 			
 			newItem = QtGui.QTableWidgetItem(message['text'])
+			
 			if (message['is_from_me'] == 1):
-				newItem.setBackground(QtCore.Qt.green)
+				if (message['service'] == "SMS"):
+					newItem.setBackground(QtCore.Qt.green)
+				else:
+					newItem.setBackground(QtCore.Qt.cyan)
 			else:
 				newItem.setBackground(QtCore.Qt.gray)
+							
 			self.ui.messageTable.setItem(row, 1, newItem)
 			
 			row += 1
@@ -234,7 +253,11 @@ class SMSWidget(QtGui.QWidget):
 						newItem.setData(QtCore.Qt.UserRole + 1, attachmentName)
 					
 					if (message['is_from_me'] == 1):
-						newItem.setBackground(QtCore.Qt.green)
+						if (message['service'] == "SMS"):
+							newItem.setBackground(QtCore.Qt.green)
+						else:
+							newItem.setBackground(QtCore.Qt.cyan)
+					
 					else:
 						newItem.setBackground(QtCore.Qt.gray)
 						
@@ -246,8 +269,8 @@ class SMSWidget(QtGui.QWidget):
 		self.ui.messageTable.setIconSize(QtCore.QSize(200,200))
 		self.ui.messageTable.resizeColumnsToContents()
 		self.ui.messageTable.setColumnWidth(1, 200)
-		self.ui.messageTable.resizeRowsToContents()
 		self.ui.messageTable.horizontalHeader().setStretchLastSection(True)
+		self.ui.messageTable.resizeRowsToContents()
 
 		# closing database
 		tempdb.close()
