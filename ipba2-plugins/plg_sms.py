@@ -39,7 +39,8 @@ class SMSWidget(QtGui.QWidget):
 			
 			# attach context menu to rightclick on message attachment
 			self.ui.messageTable.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-			self.connect(self.ui.messageTable, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)				
+			self.connect(self.ui.messageTable, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)		
+			
 
 	def populateUI(self):
 
@@ -114,6 +115,7 @@ class SMSWidget(QtGui.QWidget):
 			menu.addAction(action1)
 		
 			menu.exec_(self.ui.messageTable.mapToGlobal(pos));
+
 	
 	def openWithViewer(self):
 

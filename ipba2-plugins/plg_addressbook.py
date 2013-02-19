@@ -112,6 +112,10 @@ class AddressBookWidget(QtGui.QWidget):
 	def populateUI(self):
 	
 		QtCore.QObject.connect(self.ui.contactsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onContactClick)
+		
+		# search label
+		self.connect(self.ui.searchLabel, QtCore.SIGNAL('textChanged(QString)'), self.search)
+			
 		self.ui.contactsTree.setColumnHidden(1,True)
 		
 		self.ui.imageLabel.hide()
@@ -135,6 +139,33 @@ class AddressBookWidget(QtGui.QWidget):
 				contactNode.setText(1, contactID)
 				contactNode.setText(0, contactName)
 				self.ui.contactsTree.addTopLevelItem(contactNode)					
+
+
+	def search(self, text):
+		
+		allItems = self.ui.contactsTree.findItems("", QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, 0)
+		matching = self.ui.contactsTree.findItems(text, QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, 0)
+		
+		for element in allItems:
+			if (element.parent()):
+				element.setHidden(True)
+	
+		self.ui.contactsTable.clear()
+		
+		first = True
+		for element in matching:
+		
+			element.setHidden(False)
+			
+			if (element.parent()):
+				element.parent().setExpanded(True)
+			
+				if (first):
+					first = False
+					self.ui.contactsTree.setCurrentItem(element)
+				
+		if (len(matching) == 0):
+			self.ui.contactsTree.setCurrentItem(None)
 
 	def onContactClick(self):
 	
