@@ -1,7 +1,7 @@
 from PySide import QtCore, QtGui
 from sms_ui import Ui_SMS
 
-import os, sqlite3, sys
+import os, sqlite3, sys, shutil
 from datetime import datetime
 from string import *
 
@@ -62,6 +62,35 @@ class SMSWidget(QtGui.QWidget):
 			newElement.setText(1, address)
 			self.ui.threadsTree.addTopLevelItem(newElement)			
 
+		statistics = [
+			["Messages from last reset:"],
+			["Incoming", "counter_in_all"],
+			["Outgoing", "counter_out_all"],
+			
+			["Lifetime messages:"],
+			["Incoming", "counter_in_lifetime"],
+			["outgoing", "counter_out_lifetime"],
+			
+			["Counter:"],
+			["Last reset", "counter_last_reset"],
+		]
+		
+		for statistic in statistics:
+			
+			if (len(statistic) == 1):
+				self.ui.dataText.append("<strong>%s</strong>"%(statistic[0]))
+			
+			else:
+				text = statistic[0]
+				key = statistic[1]
+				
+				query = "SELECT value FROM _SqliteDatabaseProperties WHERE key = \"%s\""%key
+				tempcur.execute(query)
+				data = tempcur.fetchall()
+				if (len(data) > 0):
+					value = data[0][0]		
+					self.ui.dataText.append("%s: <strong>%s</strong>"%(text, value))
+
 		# closing database
 		tempdb.close()
 
@@ -70,6 +99,7 @@ class SMSWidget(QtGui.QWidget):
 		
 		cell = self.ui.messageTable.itemAt(pos)
 		self.link = cell.data(QtCore.Qt.UserRole) 
+		self.name = cell.data(QtCore.Qt.UserRole + 1) 
 		
 		if (self.link != None):
 		
@@ -77,6 +107,10 @@ class SMSWidget(QtGui.QWidget):
 		
 			action1 = QtGui.QAction("Open in standard viewer", self)
 			action1.triggered.connect(self.openWithViewer)
+			menu.addAction(action1)
+	
+			action1 = QtGui.QAction("Export", self)
+			action1.triggered.connect(self.exportSelectedFile)
 			menu.addAction(action1)
 		
 			menu.exec_(self.ui.messageTable.mapToGlobal(pos));
@@ -87,6 +121,20 @@ class SMSWidget(QtGui.QWidget):
 			subprocess.call(["xdg-open", self.link])
 		else:
 			os.startfile(self.link)
+
+	def exportSelectedFile(self):
+	
+		filename = QtGui.QFileDialog.getSaveFileName(self, "Export attachment", self.name)		
+		filename = filename[0]
+		
+		if (len(filename) == 0):
+			return
+		
+		try:
+			shutil.copy(self.link, filename)
+			QtGui.QMessageBox.about(self, "Confirm", "Attachment saved as %s."%filename)
+		except:
+			QtGui.QMessageBox.about(self, "Error", "Error while saving attachment")
 
 	def onTreeClick(self):
 		
@@ -151,7 +199,19 @@ class SMSWidget(QtGui.QWidget):
 					attachmentFileName = attachment['filename']
 					attachmentType = attachment['mime_type']
 					
-					attachmentPath = "/".join(os.path.dirname(attachmentFileName).split("/")[3:])
+					# seems paths have changed from iOS 5 to iOS 6, must find
+					# path from "Library" onwards
+					attachmentPathParts = os.path.dirname(attachmentFileName).split("/")
+					libraryPosition = 0
+					index = 0
+					for element in attachmentPathParts:
+						if (element == "Library"):
+							libraryPosition = index
+							break
+						else:
+							index += 1
+					attachmentPath = "/".join(os.path.dirname(attachmentFileName).split("/")[libraryPosition:])					
+					
 					attachmentName = os.path.basename(attachmentFileName)
 					
 					attachmentRealFilename = os.path.join(self.backup_path, plugins_utils.realFileName(self.cursor, filename=attachmentName, path=attachmentPath, domaintype="MediaDomain"))
@@ -162,14 +222,16 @@ class SMSWidget(QtGui.QWidget):
 					else:
 						
 						if (attachmentType.split("/")[0] == "image"):
-							newItem = QtGui.QTableWidgetItem(str(attachment['ROWID']))
+							newItem = QtGui.QTableWidgetItem()
 							icon = QtGui.QIcon(attachmentRealFilename)
 							newItem.setIcon(icon)		
 							
 						else:
-							newItem = QtGui.QTableWidgetItem("Attached file %s (id: %i)."%(attachmentFileName, attachment['ROWID']))
+							newItem = QtGui.QTableWidgetItem("Right click to open attached file\n%s (%s)"%(attachmentName, attachment['mime_type']))
+							newItem.setForeground(QtCore.Qt.red)
 					
 						newItem.setData(QtCore.Qt.UserRole, attachmentRealFilename)
+						newItem.setData(QtCore.Qt.UserRole + 1, attachmentName)
 					
 					if (message['is_from_me'] == 1):
 						newItem.setBackground(QtCore.Qt.green)

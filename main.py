@@ -26,6 +26,9 @@
 
 '''
 
+iPBAVersion = "2.0"
+iPBAVersionDate = "feb 2013"
+
 # --- GENERIC IMPORTS -----------------------------------------------------------------------------
 
 import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
@@ -47,9 +50,25 @@ from image_widget import Ui_ImageWidget
 from hex_widget import Ui_HexWidget
 from text_widget import Ui_TextWidget
 from plist_widget import Ui_PlistWidget
+from about_window import Ui_AboutWindow
 
 # --- END IMPORTS --------------------------------------------------------------------------------
 
+class AboutWindow(QtGui.QWidget):
+	
+	def __init__(self):
+		super(AboutWindow, self).__init__(None)
+		
+		self.ui = Ui_AboutWindow()
+		self.ui.setupUi(self)
+		
+		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+		self.ui.about_version.setText("Ver. %s (%s)"%(iPBAVersion, iPBAVersionDate))
+
+
+# ------------------------------------------------------------------------------------------------		
+		
 class PlistWidget(QtGui.QWidget):
 	
 	def __init__(self, fileName = None):
@@ -521,6 +540,62 @@ class SqliteWidget(QtGui.QWidget):
 		
 class IPBA2(QtGui.QMainWindow):
 
+	def __init__(self):
+		super(IPBA2, self).__init__(None)
+		
+		self.ui = Ui_MainWindow()
+		self.ui.setupUi(self)
+		
+		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+	
+		# set to NONE if no backup is loaded
+		# and check its noneness to lock analysis functions
+		self.backup_path = None
+	
+		#self.openBackup()
+		
+		self.loadPlugins()
+		
+		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
+		
+		self.ui.fileTree.setColumnWidth(0,200)
+		self.ui.fileTree.setColumnWidth(2,16)
+		
+		self.ui.fileTree.setColumnHidden(1,True)
+		self.ui.fileTree.setColumnHidden(3,True)
+		
+		self.ui.imagePreviewLabel.hide()
+		
+		# File menu
+		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackup)
+		QtCore.QObject.connect(self.ui.menu_closearchive, QtCore.SIGNAL("triggered(bool)"), self.closeBackup)
+		
+		# About menu
+		QtCore.QObject.connect(self.ui.actionAbout, QtCore.SIGNAL("triggered(bool)"), self.about)
+		
+		# attach context menu to rightclick on elements tree
+		self.ui.fileTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		self.connect(self.ui.fileTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
+		
+		# toolbar bindings
+		self.ui.actionNext.triggered.connect(self.nextWindow)
+		self.ui.actionPrev.triggered.connect(self.prevWindow)
+		self.ui.actionTile.triggered.connect(self.tileWindow)
+		
+		# show about window on startup
+		self.about()
+		
+
+	def about(self):
+	
+		newWidget = AboutWindow()
+		subWindow = QtGui.QMdiSubWindow()
+		subWindow.setWidget(newWidget)
+		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+		self.ui.mdiArea.addSubWindow(subWindow)
+		subWindow.show()		
+
+		
 	def loadPlugins(self):
 	
 		pluginsPackage = "ipba2-plugins"
@@ -689,55 +764,7 @@ class IPBA2(QtGui.QMainWindow):
 		
 		msgBox.setDetailedText(detailedText)
 		msgBox.exec_()		
-
-	def __init__(self):
-		super(IPBA2, self).__init__(None)
 		
-		self.ui = Ui_MainWindow()
-		self.ui.setupUi(self)
-		
-		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-	
-		# set to NONE if no backup is loaded
-		# and check its noneness to lock analysis functions
-		self.backup_path = None
-	
-		#self.openBackup()
-		
-		self.loadPlugins()
-		
-		QtCore.QObject.connect(self.ui.fileTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTreeClick)
-		
-		self.ui.fileTree.setColumnWidth(0,200)
-		self.ui.fileTree.setColumnWidth(2,16)
-		
-		self.ui.fileTree.setColumnHidden(1,True)
-		self.ui.fileTree.setColumnHidden(3,True)
-		
-		self.ui.imagePreviewLabel.hide()
-		
-		# File menu
-		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackup)
-		QtCore.QObject.connect(self.ui.menu_closearchive, QtCore.SIGNAL("triggered(bool)"), self.closeBackup)
-		
-		# attach context menu to rightclick on elements tree
-		self.ui.fileTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-		self.connect(self.ui.fileTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
-		
-		# toolbar bindings
-		self.ui.actionNext.triggered.connect(self.nextWindow)
-		self.ui.actionPrev.triggered.connect(self.prevWindow)
-		self.ui.actionTile.triggered.connect(self.tileWindow)
-
-	def closeBackup(self):
-		self.backup_path = None
-		
-		# clear main UI
-		self.ui.backupInfoText.clear()
-		self.ui.fileInfoText.clear()
-		self.ui.imagePreviewLabel.clear()
-		self.ui.fileTree.clear()
-		self.ui.mdiArea.closeAllSubWindows()
 		
 	def openBackup(self):
 		newBackupPath = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
@@ -760,6 +787,18 @@ class IPBA2(QtGui.QMainWindow):
 		# open archive path
 		self.repairDBFiles()
 		self.readBackupArchive()
+
+
+	def closeBackup(self):
+		self.backup_path = None
+		
+		# clear main UI
+		self.ui.backupInfoText.clear()
+		self.ui.fileInfoText.clear()
+		self.ui.imagePreviewLabel.clear()
+		self.ui.fileTree.clear()
+		self.ui.mdiArea.closeAllSubWindows()
+
 
 	def nextWindow(self):
 		self.ui.mdiArea.activateNextSubWindow()
