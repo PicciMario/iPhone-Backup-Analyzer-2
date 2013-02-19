@@ -140,7 +140,15 @@ plist_widget.py
 resources_rc.py
 sqlite_widget.py
 text_widget.py
+about_window.py
+
+sqlite3.exe
+
 pyinstaller-2.0
+
+ipba2-plugins/*_ui.py
+
+
 
 *.py[co]
 
