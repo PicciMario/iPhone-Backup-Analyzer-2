@@ -26,7 +26,7 @@
 
 '''
 
-iPBAVersion = "2.0"
+iPBAVersion = "2.0 build 20130219"
 iPBAVersionDate = "feb 2013"
 
 # --- GENERIC IMPORTS -----------------------------------------------------------------------------
@@ -784,8 +784,13 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileTree.clear()
 		self.ui.mdiArea.closeAllSubWindows()
 		
-		# open archive path
-		self.repairDBFiles()
+		# attempt to repair db files (windows only, user can cancel)
+		answer = self.repairDBFiles()
+		if (answer == False):
+			self.backup_path = None
+			return
+		
+		# open archive path	
 		self.readBackupArchive()
 
 
@@ -1026,46 +1031,88 @@ class IPBA2(QtGui.QMainWindow):
 			zipfilename = os.path.join(self.backup_path, 'original_files.zip')
 
 			# skips this phase if original_files.zip is already present into backup_path
-			if os.path.exists(zipfilename) == 0:                
+			if (os.path.exists(zipfilename) == 0):   
+			
+				reply = QtGui.QMessageBox.question(self, 'Repair database files', "On Windows platforms, the SQLite3 files in the iOS backup must be repaired before being read by iPBA2. The original files will be saved in a zip file named original_files.zip in the backup folder. Nonetheless it is STRONGLY advised to work on a copy of the backup dir, not on the original evidence. Are you sure you wanna continue?", QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+				if (reply == QtGui.QMessageBox.No):
+					return False
 
-				print '\nRepairing the databases ... '
-				zf = zipfile.ZipFile(zipfilename, mode='w')
-				rcount = 0
+				#------------------ reading file dir and checking magic for sqlite databases -------------------------------
 
-				# scans the files into working directory
-				bkp_files = os.listdir(self.backup_path)
-				for fname in bkp_files:
-					item_realpath = os.path.join(self.backup_path,fname)
-					# checks for existence (skips curr file if false)
+				# list sqlite files to be repaired
+				sqliteFiles = []
+				backupFiles = os.listdir(self.backup_path)
+
+				# starts progress window
+				progress = QtGui.QProgressDialog("Searching for files to repair...", "Abort", 0, len(backupFiles), self)
+				progress.setWindowModality(QtCore.Qt.WindowModal)
+				progress.setMinimumDuration(0)
+				progress.show()
+				QtGui.QApplication.processEvents()            	
+				
+				readCount = 0
+				for backupFile in backupFiles:
+					item_realpath = os.path.join(self.backup_path,backupFile)
 					if (os.path.exists(item_realpath) == 0):
 						continue	
-					# check file type (from magic numbers)
 					filemagic = magic.file(item_realpath)
-					# filter by sqlite files
 					if (filemagic.partition("/")[2] == "sqlite"):
-						print fname
-						rcount += 1
-						# dump the database in an SQL text format (Temp.sql temporary file)
-						os.system('echo .dump | sqlite3 "%s" > Temp.sql' % item_realpath)
+						sqliteFiles.append([backupFile, item_realpath])
+					readCount += 1
+					progress.setValue(readCount)
+				
+				progress.setValue(progress.maximum())
 
-						# saves the original file into the archive and releases the archive handle
-						current = os.getcwd()
-						os.chdir(self.backup_path)
-						zf.write(fname)
-						os.chdir(current)
+				#------------------- converting sqlite files found in the previous step ----------------------------------
 
-						#Removes original file
-						os.remove(item_realpath)
+				# starts progress window
+				progress = QtGui.QProgressDialog("Repairing...", "Abort", 0, len(sqliteFiles), self)
+				progress.setWindowModality(QtCore.Qt.WindowModal)
+				progress.setMinimumDuration(0)
+				progress.show()
+				QtGui.QApplication.processEvents()
+		
+				print '\nRepairing the databases ... '
+				zf = zipfile.ZipFile(zipfilename, mode='w')
+				
+				convertedCount = 0
+				for sqliteFile in sqliteFiles:
+					fname = sqliteFile[0]
+					item_realpath = sqliteFile[1]
 
-						#Overwrites the original file with the Temp.sql content
-						os.system('echo .quit | sqlite3 -init Temp.sql "%s"' % item_realpath)
+					print("Repairing database: %s"%fname)
 
-						#Removes temporary file
-						if os.path.exists("Temp.sql"):
-							os.remove("Temp.sql")
+					# dump the database in an SQL text format (Temp.sql temporary file)
+					os.system('echo .dump | sqlite3 "%s" > Temp.sql' % item_realpath)
 
-				print ('\n%d files competed!'%rcount) 
+					# saves the original file into the archive and releases the archive handle
+					current = os.getcwd()
+					os.chdir(self.backup_path)
+					zf.write(fname)
+					os.chdir(current)
+
+					#Removes original file
+					os.remove(item_realpath)
+
+					#Overwrites the original file with the Temp.sql content
+					os.system('echo .quit | sqlite3 -init Temp.sql "%s"' % item_realpath)
+
+					#Removes temporary file
+					if os.path.exists("Temp.sql"):
+						os.remove("Temp.sql")
+					
+					# update progress bar
+					convertedCount += 1
+					progress.setValue(convertedCount)
+
+				progress.setValue(progress.maximum())
+				
 				zf.close()
+				
+				return True
+			
+			else:
+				return True
 
 	
 	# return database ID of the currently selected element

@@ -7,7 +7,7 @@ pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=1,
-          name=os.path.join('build\\pyi.win32\\main', 'main.exe'),
+          name=os.path.join('build\\pyi.win32\\main', 'iPBA2.exe'),
           debug=False,
           strip=None,
           upx=True,
