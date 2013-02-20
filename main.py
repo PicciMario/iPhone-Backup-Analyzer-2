@@ -1044,7 +1044,7 @@ class IPBA2(QtGui.QMainWindow):
 				backupFiles = os.listdir(self.backup_path)
 
 				# starts progress window
-				progress = QtGui.QProgressDialog("Searching for files to repair...", "Abort", 0, len(backupFiles), self)
+				progress = QtGui.QProgressDialog("Searching for databases to repair...", "Abort", 0, len(backupFiles), self)
 				progress.setWindowModality(QtCore.Qt.WindowModal)
 				progress.setMinimumDuration(0)
 				progress.show()
@@ -1059,6 +1059,11 @@ class IPBA2(QtGui.QMainWindow):
 					if (filemagic.partition("/")[2] == "sqlite"):
 						sqliteFiles.append([backupFile, item_realpath])
 					readCount += 1
+					
+					QtGui.QApplication.processEvents() 
+					if (progress.wasCanceled()):
+						return False
+						
 					progress.setValue(readCount)
 				
 				progress.setValue(progress.maximum())
@@ -1066,9 +1071,10 @@ class IPBA2(QtGui.QMainWindow):
 				#------------------- converting sqlite files found in the previous step ----------------------------------
 
 				# starts progress window
-				progress = QtGui.QProgressDialog("Repairing...", "Abort", 0, len(sqliteFiles), self)
+				progress = QtGui.QProgressDialog("Repairing databases...", "Abort", 0, len(sqliteFiles), self)
 				progress.setWindowModality(QtCore.Qt.WindowModal)
 				progress.setMinimumDuration(0)
+				progress.setCancelButton(None)
 				progress.show()
 				QtGui.QApplication.processEvents()
 		
@@ -1104,6 +1110,8 @@ class IPBA2(QtGui.QMainWindow):
 					# update progress bar
 					convertedCount += 1
 					progress.setValue(convertedCount)
+					
+					QtGui.QApplication.processEvents()
 
 				progress.setValue(progress.maximum())
 				
@@ -1374,6 +1382,7 @@ class IPBA2(QtGui.QMainWindow):
 		progress = QtGui.QProgressDialog("Reading backup...", "Abort", 0, 2*len(mbdb.items())/10, self)
 		progress.setWindowModality(QtCore.Qt.WindowModal)
 		progress.setMinimumDuration(0)
+		progress.setCancelButton(None)
 		progress.show()
 		QtGui.QApplication.processEvents()
 		
