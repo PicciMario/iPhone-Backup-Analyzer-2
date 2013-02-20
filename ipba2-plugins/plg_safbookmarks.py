@@ -24,29 +24,85 @@ class SafBookmarksWidget(QtGui.QWidget):
 
 		if (not os.path.isfile(self.filename)):
 			raise Exception("Safari Bookmarks Database not found: \"%s\""%self.filename)
-		
+	
+		self.ui.bookmarksTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+		QtCore.QObject.connect(self.ui.bookmarksTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)
+	
 		if (daemon == False):
 			self.populateUI()
+
+
+	def ctxMenu(self, pos):
+	
+		currentSelectedElement = self.ui.bookmarksTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+		
+		# if url
+		if (len(currentSelectedElement.text(1)) > 0):
+			
+			menu =  QtGui.QMenu();
+			
+			action1 = QtGui.QAction("Open in browser", self)
+			action1.triggered.connect(self.openSelectedURL)
+			menu.addAction(action1)
+
+			action1 = QtGui.QAction("Copy URL", self)
+			action1.triggered.connect(self.copySelected)
+			menu.addAction(action1)
+			
+			menu.exec_(self.ui.bookmarksTree.mapToGlobal(pos));		
+
+	def openSelectedURL(self):
+	
+		currentSelectedElement = self.ui.bookmarksTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+	
+		url = currentSelectedElement.text(1)
+		
+		QtGui.QDesktopServices.openUrl(url)
+		
+	def copySelected(self):
+	
+		currentSelectedElement = self.ui.bookmarksTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return
+	
+		url = currentSelectedElement.text(1)
+		
+		clipboard = QtGui.QApplication.clipboard()
+		clipboard.setText(url)
+
 			
 	def insertBookmark(self, parent_node, parent_id):
 		query = "SELECT id, title, num_children, type, url, editable, deletable, order_index, external_uuid FROM bookmarks WHERE parent = \"%s\" ORDER BY order_index"%parent_id
 		self.tempcur.execute(query)
 		bookmarks = self.tempcur.fetchall()
+		
+		folderIcon = self.style().standardIcon(QtGui.QStyle.SP_DirIcon) 
+		urlIcon = self.style().standardIcon(QtGui.QStyle.SP_FileDialogContentsView) 
+		
 		for bookmark in bookmarks:
 			id = bookmark['id']
 			title = bookmark['title']
 			num_children = bookmark['num_children']
 			
-			title = str(title.encode("utf-8"))
-			if (bookmark['type'] != 0):
-				title = "[" + title + "] (%i)"%num_children
-			
+			# creating new node
 			newNode = QtGui.QTreeWidgetItem(parent_node)
-			#newNode.setText(0, str(id))
-			newNode.setText(0, title)
-			self.ui.bookmarksTree.addTopLevelItem(newNode)
 			
-			#newnode = bookmarkstree.insert(parent_node, 'end', text=title, values=(id))
+			# setting title
+			#title = str(title.encode("utf-8"))
+			if (bookmark['type'] != 0):
+				title += " (%i)"%num_children
+				newNode.setIcon(0, folderIcon) 
+			else:
+				newNode.setIcon(0, urlIcon)
+			
+			newNode.setText(0, title)
+			
+			# adding node to bookmarks tree
+			self.ui.bookmarksTree.addTopLevelItem(newNode)
 		
 			if (num_children != 0):
 				self.insertBookmark(newNode, id)
@@ -54,17 +110,12 @@ class SafBookmarksWidget(QtGui.QWidget):
 			# type 0 for simple bookmarks, not 0 for folders
 			if (bookmark['type'] == 0):
 			
+				newNode.setText(1, bookmark['url'])
+			
 				keyNode = QtGui.QTreeWidgetItem(newNode)
-				keyNode.setText(0, "URL: " + str(bookmark['url'].encode("utf-8")))
+				keyNode.setText(0, bookmark['url'])
+				keyNode.setText(1, bookmark['url'])
 				self.ui.bookmarksTree.addTopLevelItem(keyNode)	
-
-				keyNode = QtGui.QTreeWidgetItem(newNode)
-				keyNode.setText(0, "Editable: " + str(bookmark['editable']))
-				self.ui.bookmarksTree.addTopLevelItem(keyNode)
-
-				keyNode = QtGui.QTreeWidgetItem(newNode)
-				keyNode.setText(0, "Deletable: " + str(bookmark['deletable']))
-				self.ui.bookmarksTree.addTopLevelItem(keyNode)				
 
 
 	def printBookmark(self, parent_id):

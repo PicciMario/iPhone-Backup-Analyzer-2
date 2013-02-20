@@ -39,12 +39,12 @@
      </column>
      <column>
       <property name="text">
-       <string>Title</string>
+       <string>Timestamp</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>Timestamp</string>
+       <string>Title</string>
       </property>
      </column>
     </widget>
