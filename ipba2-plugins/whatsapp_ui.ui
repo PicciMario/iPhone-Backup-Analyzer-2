@@ -10,6 +10,12 @@
     <height>406</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>500</width>
+    <height>0</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>WhatsApp Browser</string>
   </property>
@@ -17,7 +23,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="Contacts">
       <property name="autoFillBackground">
@@ -37,6 +43,15 @@
          </property>
          <property name="alternatingRowColors">
           <bool>false</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="horizontalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
          </property>
          <property name="sortingEnabled">
           <bool>true</bool>
@@ -75,9 +90,40 @@
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QTableWidget" name="chatsWidget">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="tabKeyNavigation">
+          <bool>false</bool>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::ContiguousSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="horizontalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <column>
+          <property name="text">
+           <string>zpk</string>
+          </property>
+         </column>
          <column>
           <property name="text">
            <string>Contact Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Contact JID</string>
           </property>
          </column>
          <column>
@@ -98,10 +144,33 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="chatsWidget_2">
+        <widget class="QTableWidget" name="msgsWidget">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>false</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="horizontalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
          <column>
           <property name="text">
-           <string>Is From Me</string>
+           <string>zpk</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>From</string>
           </property>
          </column>
          <column>
@@ -111,7 +180,12 @@
          </column>
          <column>
           <property name="text">
-           <string>Msg Text</string>
+           <string>Msg Content</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Attachment</string>
           </property>
          </column>
          <column>
