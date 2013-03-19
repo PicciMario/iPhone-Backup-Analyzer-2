@@ -26,13 +26,13 @@
 
 '''
 
-iPBAVersion = "2.0 build 20130219"
-iPBAVersionDate = "feb 2013"
+iPBAVersion = "2.0 build 20130319"
+iPBAVersionDate = "mar 2013"
 
 # --- GENERIC IMPORTS -----------------------------------------------------------------------------
 
 import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
-import mbdbdecoding, plistutils, magic
+import mbdbdecoding, plistutils, magic, webbrowser
 
 # homemade library to build html reports
 import html_util
@@ -65,7 +65,6 @@ class AboutWindow(QtGui.QWidget):
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
 		self.ui.about_version.setText("Ver. %s (%s)"%(iPBAVersion, iPBAVersionDate))
-
 
 # ------------------------------------------------------------------------------------------------		
 		
@@ -632,7 +631,6 @@ class IPBA2(QtGui.QMainWindow):
 				getattr(sys.modules[modname], "main")
 				hasMain = True
 			except:
-				#print("Error: main() method not found in plugin %s"%modname)
 				hasMain = False	
 
 			# add entry to plugins menu
@@ -647,7 +645,6 @@ class IPBA2(QtGui.QMainWindow):
 				getattr(sys.modules[modname], "report")
 				hasReport = True
 			except:
-				#print("Error: report() method not found in plugin %s"%modname)
 				hasReport = False	
 
 			# add entry to reports menu
@@ -681,10 +678,7 @@ class IPBA2(QtGui.QMainWindow):
 			subWindow.setWidget(newWidget)
 			subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 			self.ui.mdiArea.addSubWindow(subWindow)
-			subWindow.show()
-			
-#			self.ui.mdiArea.addSubWindow(newWidget)
-#			newWidget.show()		
+			subWindow.show()		
 
 	def runReport(self, modname): # mario piccinelli, fabio sangiacomo
 	

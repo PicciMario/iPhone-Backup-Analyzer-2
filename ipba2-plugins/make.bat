@@ -10,3 +10,4 @@ pyside-uic sms_ui.ui > sms_ui.py
 pyside-uic note_ui.ui > note_ui.py
 pyside-uic knownnetworks_ui.ui > knownnetworks_ui.py
 pyside-uic safarihistory_ui.ui > safarihistory_ui.py
+pyside-uic skype_ui.ui > skype_ui.py

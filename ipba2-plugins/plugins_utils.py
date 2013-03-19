@@ -15,12 +15,14 @@ from PySide import QtCore, QtGui
 
 # MAIN FUNCTION --------------------------------------------------------------------------------
 
-def realFileName(cursor, filename="", domaintype="", path=""):
+def realFileName(cursor, filename="", domaintype="", path="", domain=""):
 	query = "SELECT fileid FROM indice WHERE 1=1"
 	if (filename != ""):
 		query = query + " AND file_name = \"%s\""%filename
 	if (domaintype != ""):
 		query = query + " AND domain_type = \"%s\""%domaintype
+	if (domain != ""):
+		query = query + " AND domain = \"%s\""%domain
 	if (path != ""):
 		query = query + "AND file_path = \"%s\""%path
 
