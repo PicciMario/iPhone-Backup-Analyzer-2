@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Messages Browser</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
+  <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
@@ -28,6 +28,33 @@
         <bool>true</bool>
        </property>
       </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Search:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="searchLabel"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton">
+         <property name="maximumSize">
+          <size>
+           <width>20</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>X</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <widget class="QTreeWidget" name="threadsTree">
@@ -58,6 +85,11 @@
        <column>
         <property name="text">
          <string>id</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Type</string>
         </property>
        </column>
        <column>
@@ -120,5 +152,22 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>searchLabel</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>151</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>147</x>
+     <y>152</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

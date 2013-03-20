@@ -39,10 +39,15 @@ class SMSWidget(QtGui.QWidget):
 			
 			# attach context menu to rightclick on message attachment
 			self.ui.messageTable.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-			self.connect(self.ui.messageTable, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)		
+			self.connect(self.ui.messageTable, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)	
+
+			# search label
+			self.connect(self.ui.searchLabel, QtCore.SIGNAL('textChanged(QString)'), self.search)	
 			
 
 	def populateUI(self):
+	
+		self.ui.threadsTree.setColumnWidth(1, 50)
 
 		# opening database
 		tempdb = sqlite3.connect(self.filename)
@@ -50,7 +55,7 @@ class SMSWidget(QtGui.QWidget):
 		tempcur = tempdb.cursor() 
 
 		# populating tree with SMS groups
-		query = "SELECT ROWID, chat_identifier FROM chat;"
+		query = "SELECT ROWID, chat_identifier, service_name FROM chat;"
 		tempcur.execute(query)
 		groups = tempcur.fetchall()
 		
@@ -60,7 +65,8 @@ class SMSWidget(QtGui.QWidget):
 
 			newElement = QtGui.QTreeWidgetItem(None)
 			newElement.setText(0, str(groupid))
-			newElement.setText(1, address)
+			newElement.setText(1, str(group['service_name']))
+			newElement.setText(2, address)
 			self.ui.threadsTree.addTopLevelItem(newElement)			
 
 		statistics = [
@@ -94,6 +100,28 @@ class SMSWidget(QtGui.QWidget):
 
 		# closing database
 		tempdb.close()
+
+
+	def search(self, text):
+		
+		allItems = self.ui.threadsTree.findItems("", QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, 2)
+		matching = self.ui.threadsTree.findItems(text, QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, 2)
+		
+		for element in allItems:
+			element.setHidden(True)
+	
+		self.ui.messageTable.clear()
+		
+		first = True
+		for element in matching:
+			element.setHidden(False)	
+			if (first):
+				first = False
+				self.ui.threadsTree.setCurrentItem(None)
+				self.ui.threadsTree.setCurrentItem(element)
+				
+		if (len(matching) == 0):
+			self.ui.threadsTree.setCurrentItem(None)	
 
 
 	def ctxMenu(self, pos):	
