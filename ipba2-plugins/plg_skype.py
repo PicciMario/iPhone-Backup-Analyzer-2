@@ -176,6 +176,115 @@ class Contact:
 
 ############################################################################################################################
 
+class Call:
+	
+	#init
+	def __init__(self, record, c_id, begin_timestamp, duration, call_type, call_type_img, host_identity, remote_host, remote_host_displayname, status ):
+				
+		#call record
+		self.record = str(record)
+		#call id
+		self.c_id = str(c_id)
+		
+		#Parse various date times.
+		self.begin_timestamp = self.parse_date(begin_timestamp)
+		
+		#Duration
+		#convert the call duration from seconds to minutes:seconds.
+		self.duration = self.convert_seconds(duration)
+	
+		self.call_type_img = call_type_img
+		self.call_type = self.check_call_type(call_type)
+		self.host_identity = self.check_host(host_identity, remote_host)		
+		self.remote_host = remote_host  
+		self.status = self.check_status(status)  
+		self.remote_host_displayname = remote_host_displayname     
+			
+					   
+	def check_status(self, value):
+		if value == 6:
+			value = "Accepted"
+		elif value == 8:
+			value = "Rejected at Destination"
+		elif value == 13 or value == 7:
+			value = "Cancelled at Origin"
+		else:
+			value = "Other status - Not recognized "			
+		return value
+		
+	def __str__(self):
+		id_to_string = self.c_id
+		host_identity_to_string = self.host_identity
+		remote_host_to_string = self.remote_host
+
+		return id_to_string, host_identity_to_string, remote_host_to_string
+				
+		#I'm getting the local host name from the guid field, like:  
+		#jessicaleone2-nicodemo.j.gawronski-1347550499-1 where one of the names is the host name.
+		#remove the remote_host identity, any digit and all the "-":           
+	
+	def check_host(self, host_to_convert, remote_host): 
+		
+		if host_to_convert != None:
+			split1, split2, split3, split4 = host_to_convert.split("-")
+			if split1 == remote_host:
+				host_to_convert = split2
+			else:
+				host_to_convert = split1	
+			
+		else:
+			host_to_convert = " "
+		return host_to_convert
+
+	def check_call_type(self, value):
+		if value == 1:
+			value = "Incoming"
+			self.call_type_img = "../../resources/incoming.png"
+		elif value == 2:
+			value = "Outgoing"
+			self.call_type_img = "../../resources/outgoing.png"
+		else:
+			value = "Unknown (%i)"%value
+		return value	
+
+	#convert the call duration from seconds to minutes:seconds.
+	def convert_seconds(self, value):
+		try:
+			seconds = value%60
+			minutes = value/60
+			hours = 0
+			if minutes >= 60:
+				hours = minutes/60
+				minutes = minutes%60
+			if minutes < 10:
+				minutes = "0"+str(minutes)
+			if hours < 10:
+				hours = "0"+str(hours)	
+			if seconds < 10:
+				seconds = "0"+str(seconds)	
+					
+			value = str(hours)+ ":" +str(minutes)+ ":" +str(seconds)
+		
+		except TypeError:
+			value = " "
+			
+		return value	
+
+	#Parse date like 1357674582 into date like this Day-Month-Year Hour:Minute:Second		
+	def parse_date(self, value):
+		if value != 0:
+			try:
+				value = datetime.utcfromtimestamp(value)
+				value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+				value = value.strftime('%d-%m-%Y %H:%M:%S')
+			except TypeError:
+				value = " "
+		else:
+			value = " "        
+		return value		
+
+############################################################################################################################
+
 class SkypeWidget(QtGui.QWidget):
 	
 	def __init__(self, cursor, path, daemon = False):
@@ -205,6 +314,11 @@ class SkypeWidget(QtGui.QWidget):
 		QtCore.QObject.connect(self.ui.contactsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onContactsTreeClick)
 		self.ui.contactsTree.setColumnHidden(0,True)
 		self.ui.imageLabel.hide()
+
+		# UI settings for calls tab
+		QtCore.QObject.connect(self.ui.callsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onCallsTreeClick)
+		self.ui.callsTree.setColumnHidden(0,True)
+		self.ui.callsTree.setColumnWidth(1,130)
 	
 		# populating contacts tab
 		self.extractedContacts = self.get_contacts()
@@ -215,6 +329,19 @@ class SkypeWidget(QtGui.QWidget):
 			node.setText(1, contact.skypename)
 			self.ui.contactsTree.addTopLevelItem(node)
 			index += 1
+
+		# populating calls tab
+		self.extractedCalls = self.get_calls()
+		index = 0
+		for call in self.extractedCalls:
+			node = QtGui.QTreeWidgetItem(None)
+			node.setText(0, str(index))
+			node.setText(1, call.begin_timestamp)
+			node.setText(2, call.remote_host)
+			node.setText(3, call.status)
+			self.ui.callsTree.addTopLevelItem(node)
+			index += 1
+	
 	
 	def onContactsTreeClick(self):
 		currentSelectedElement = self.ui.contactsTree.currentItem()
@@ -277,6 +404,7 @@ class SkypeWidget(QtGui.QWidget):
 		else:
 			self.ui.imageLabel.hide()
 
+
 	def get_contacts(self):
 
 		contact_list = []
@@ -327,9 +455,9 @@ class SkypeWidget(QtGui.QWidget):
 			# contacts[81] --> phone_home_normalized		contacts[82] --> phone_office_normalized 		contacts[83] --> phone_mobile_normalized
 			# contacts[84] --> sent_authrequest_initmethod		contacts[85] --> authreq_initmethod contacts[86] --> verified_email
 			# contacts[87] --> verified_company		contacts[88] --> sent_authrequest_extrasbitmask 		contacts[89] --> extprop_tags		
-			record = len(contact_list)
 			
-						
+			record = len(contact_list)
+					
 			curr_contact = Contact(
 				record, 
 				contact["id"], 
@@ -361,9 +489,105 @@ class SkypeWidget(QtGui.QWidget):
 			)
 			contact_list.append(curr_contact)
 		
+		connection.close()
+		
 		return contact_list
+		
+
+	def onCallsTreeClick(self):
+		currentSelectedElement = self.ui.callsTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return		
+		
+		callID = int(currentSelectedElement.text(0))
+		call = self.extractedCalls[callID]
+		
+		elements = [
+			["Timestamp", call.begin_timestamp],
+			["Duration", str(call.duration)],
+			["Status", call.status],
+			["Call type", str(call.call_type)],
+			["Host identity", call.host_identity],
+			["Remote host", call.remote_host],
+			["Remote host name", call.remote_host_displayname],
+		]
+		
+		self.ui.callsTable.clear()
+		self.ui.callsTable.setHorizontalHeaderLabels(["Field", "Value"])
+		self.ui.callsTable.setRowCount(100)
+		self.ui.callsTable.setColumnCount(2)
+		
+		row = 0
+		for element in elements:
+			if (len(element[1].strip()) > 0):
+				newItem = QtGui.QTableWidgetItem(element[0])
+				self.ui.callsTable.setItem(row, 0, newItem)	
+				newItem = QtGui.QTableWidgetItem(element[1])
+				self.ui.callsTable.setItem(row, 1, newItem)
+				row = row + 1	
+				
+		self.ui.callsTable.setRowCount(row)
+		self.ui.callsTable.resizeColumnsToContents()		
+		self.ui.callsTable.resizeRowsToContents()
+		self.ui.callsTable.horizontalHeader().setStretchLastSection(True)
 
 
+	def get_calls(self):
+		
+		call_list = []
+		
+		# open database
+		connection = sqlite3.connect(self.filename)
+		connection.row_factory = sqlite3.Row
+
+		cursor = connection.cursor()
+		   
+		#Get the name of each table in the database.
+		cursor.execute('SELECT * FROM CallMembers')
+		
+		calls = cursor.fetchall()
+		
+		for call in calls:
+			
+			# ------------------------------------------------------- #
+			#  Skype main.db file *** CallMembers TABLE  #
+			# ------------------------------------------------------- #
+			# call[0] --> id					call[1] --> is_permanent 		call[2] --> identity
+			# call[3] --> dispname				call[4] --> languages 			call[5] --> call_duration
+			# call[6] --> price_per_minute		call[7] --> price_precision 	call[8] --> price_currency
+			# call[9] --> payment_category		call[10] --> type 				call[11] --> status
+			# call[12] --> failurereason		call[13] --> sounderror_code 	call[14] --> soundlevel
+			# call[15] --> pstn_statustext		call[16] --> pstn_feedback 		call[17] --> forward_targets
+			# call[18] --> forwarded_by			call[19] --> debuginfo 			call[20] --> videostatus
+			# call[21] --> target_identity		call[22] --> mike_status 		call[23] --> is_read_only
+			# call[24] --> quality_status		call[25] --> call_name 			call[26] --> transfer_status
+			# call[27] --> transfer_active		call[28] --> transferred_by 	call[29] --> transferred_to
+			# call[30] --> guid					call[31] --> next_redial_time 	call[32] --> nrof_redials_done
+			# call[33] --> nrof_redials_left	call[34] --> transfer_topic 	call[35] --> real_identity
+			# call[36] --> start_timestamp		call[37] --> is_conference 		call[38] --> quality_problems
+			# call[39] --> identity_type		call[40] --> country 			call[41] --> creation_timestamp
+			# call[42] --> stats_xml			call[43] --> is_premium_video_sponsor 		call[44] --> is_multiparty_video_capable
+			# call[45] --> recovery_in_progress	call[46] --> nonse_word 		call[47] --> pk_status                       
+			
+			record = len(call_list)
+				
+			curr_call = Call(
+				record, 
+				call["id"], 
+				call["creation_timestamp"], 
+				call["call_duration"], 
+				call["type"],
+				None, 
+				call["guid"],
+				call["identity"], 
+				call["dispname"], 
+				call["status"]
+			)
+			call_list.append(curr_call)
+		
+		connection.close()
+	
+		return call_list
 
 
 
