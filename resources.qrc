@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="icons">
+    <file>images/rightSideBar.png</file>
     <file>images/close.png</file>
     <file>images/open.png</file>
     <file>images/prev.png</file>

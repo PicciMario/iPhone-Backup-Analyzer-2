@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1161</width>
-    <height>551</height>
+    <width>1120</width>
+    <height>546</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -142,7 +142,7 @@
      </widget>
     </item>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
+     <layout class="QVBoxLayout" name="rightSidebar">
       <item>
        <widget class="QLabel" name="label_4">
         <property name="frameShape">
@@ -197,7 +197,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1161</width>
+     <width>1120</width>
      <height>21</height>
     </rect>
    </property>
@@ -246,6 +246,8 @@
    <addaction name="actionPrev"/>
    <addaction name="actionTile"/>
    <addaction name="actionNext"/>
+   <addaction name="separator"/>
+   <addaction name="actionToggleRight"/>
   </widget>
   <action name="actionNext">
    <property name="icon">
@@ -304,6 +306,15 @@
   <action name="actionAbout">
    <property name="text">
     <string>About...</string>
+   </property>
+  </action>
+  <action name="actionToggleRight">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/icons/images/rightSideBar.png</normaloff>:/icons/images/rightSideBar.png</iconset>
+   </property>
+   <property name="text">
+    <string>Toggle right sidebar</string>
    </property>
   </action>
  </widget>

@@ -581,8 +581,25 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionPrev.triggered.connect(self.prevWindow)
 		self.ui.actionTile.triggered.connect(self.tileWindow)
 		
+		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
+		self.showRightSidebar = True
+		
 		# show about window on startup
 		self.about()
+		
+	# toggle right sidebar
+	def toggleRight(self):
+		
+		sidebarObjects = [self.ui.fileInfoText, self.ui.imagePreviewLabel, self.ui.label_4]
+	
+		if (self.showRightSidebar == True):
+			self.showRightSidebar = False
+			for sidebarObject in sidebarObjects:
+				sidebarObject.hide()
+		else:
+			self.showRightSidebar = True
+			for sidebarObject in sidebarObjects:
+				sidebarObject.show()			
 		
 
 	def about(self):
@@ -1310,8 +1327,10 @@ class IPBA2(QtGui.QMainWindow):
 		if (filemagic.partition("/")[0] == "image"):
 			pic = QtGui.QPixmap(realFileName).scaled(200, 200, QtCore.Qt.KeepAspectRatio)	
 			view.setPixmap(pic) 
-			view.show() 
+			if (self.showRightSidebar):
+				view.show() 
 		else:
+			view.clear()
 			view.hide()
 	
 	def readBackupArchive(self):
