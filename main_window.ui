@@ -224,9 +224,20 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuWindows">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionPrev"/>
+    <addaction name="actionNext"/>
+    <addaction name="actionTile"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleRight"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuPlugins"/>
    <addaction name="menuReports"/>
+   <addaction name="menuWindows"/>
    <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -255,10 +266,13 @@
      <normaloff>:/icons/images/next.png</normaloff>:/icons/images/next.png</iconset>
    </property>
    <property name="text">
-    <string>Next</string>
+    <string>Next Window</string>
    </property>
    <property name="toolTip">
     <string>Next window</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Right</string>
    </property>
   </action>
   <action name="actionPrev">
@@ -267,10 +281,13 @@
      <normaloff>:/icons/images/prev.png</normaloff>:/icons/images/prev.png</iconset>
    </property>
    <property name="text">
-    <string>Previous</string>
+    <string>Previous Window</string>
    </property>
    <property name="toolTip">
     <string>Previous window</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Left</string>
    </property>
   </action>
   <action name="actionTile">
@@ -279,7 +296,7 @@
      <normaloff>:/icons/images/tile.png</normaloff>:/icons/images/tile.png</iconset>
    </property>
    <property name="text">
-    <string>Tile</string>
+    <string>Tile Windows</string>
    </property>
    <property name="toolTip">
     <string>Tile windows</string>
@@ -315,6 +332,9 @@
    </property>
    <property name="text">
     <string>Toggle right sidebar</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
    </property>
   </action>
  </widget>
