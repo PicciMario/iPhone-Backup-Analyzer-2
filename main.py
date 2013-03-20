@@ -663,6 +663,13 @@ class IPBA2(QtGui.QMainWindow):
 		
 			if (self.backup_path == None):
 				return
+				
+			# check if plugin already open
+			alreadyOpenWindows = self.ui.mdiArea.subWindowList()
+			for openWindow in alreadyOpenWindows:
+				if (openWindow.widget().__class__.__name__ in dir(sys.modules[modname])):
+					self.ui.mdiArea.setActiveSubWindow(openWindow)
+					return
 	
 			try:
 				mainMethod = getattr(sys.modules[modname], 'main')
