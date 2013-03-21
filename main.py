@@ -1272,9 +1272,16 @@ class IPBA2(QtGui.QMainWindow):
 		item_datahash = str(data['datahash'])
 		item_flag = str(data['flag'])
 		
+		item_domain_type = str(data['domain_type'])
+		item_domain = str(data['domain'])
+		item_fullpath = str(data['file_path'])
+		
 		self.ui.fileInfoText.clear()
 		
 		self.ui.fileInfoText.append("<strong>File</strong>: " + item_name)
+		self.ui.fileInfoText.append("<strong>Domain type</strong>: " + item_domain_type)
+		self.ui.fileInfoText.append("<strong>Domain</strong>: " + item_domain)
+		self.ui.fileInfoText.append("<strong>Full path</strong>: " + item_fullpath)
 		self.ui.fileInfoText.append("")		
 		self.ui.fileInfoText.append("<strong>Element type</strong>: " + item_type)
 		self.ui.fileInfoText.append("<strong>Permissions</strong>: " + item_permissions)
