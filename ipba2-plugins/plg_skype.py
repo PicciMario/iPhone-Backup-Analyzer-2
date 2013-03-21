@@ -11,6 +11,95 @@ import plugins_utils
 # retrieve modules from ipba root directory
 import plistutils
 
+############################################################################################################################
+
+class Chat_message:
+
+	#init
+	def __init__(self, record, m_id, timestamp, author, from_dispname, mess, status, mess_type, chatname, dialog_partner,edited_timestamp):
+				
+		#message record
+		self.record = str(record)
+		
+		#message id
+		self.m_id = str(m_id)
+		
+		#Parse various date times.
+		self.timestamp = self.parse_date(timestamp)
+		
+		#author and displayname
+		self.author = author
+		self.from_dispname = self.parse_text(from_dispname)
+		
+		self.mess = self.parse_text(mess)           
+		self.status = self.check_status(status)          
+				   
+		self.mess_type = self.check_type(mess_type)  
+		self.chatname = chatname  
+		
+		self.edited_timestamp = self.parse_date(edited_timestamp)
+			 
+		self.dialog_partner = self.parse_text(dialog_partner)
+			
+	def __str__(self):
+		mess_to_string = self.mess	
+		return mess_to_string
+
+	#Parse text method
+	def parse_text(self, value):    
+		#try:
+		#	value = str(value)
+		#	if value == "None":
+		#		value = " "
+		#except UnicodeEncodeError:
+		#	value = value.encode("utf-8")
+		if (value == None): 
+			return ""
+		return value      
+		
+	def check_status(self, value):
+		if value == 4:
+			value = "Read"
+		if value == 3:
+			value = "Not Read"
+		elif value == 2:
+			value = "Sent"	
+		elif value == 1:
+			value = "Not Delivered Yet"	
+		return value	
+	
+	def check_type(self, value):
+		if value == 61:
+			value = "POSTED_TEXT"
+		if value == 50:
+			value = "Auth_Request"
+		if value == 51:
+			value = "Auth_Granted"		
+		if value == 53:
+			value = "Auth_Denied"		
+		if value == 30:
+			value = "STARTED_LIVESESSION"		
+		if value == 39:
+			value = "ENDED_LIVESESSION"		
+		if value == 68:
+			value = "FILE TRANSFER"		
+		return value
+
+	#Parse date like 1357674582 into date like this Day-Month-Year Hour:Minute:Second		
+	def parse_date(self, value):
+		if value != 0:
+			try:
+				value = datetime.utcfromtimestamp(value)
+				value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+				value = value.strftime('%d-%m-%Y %H:%M:%S')
+			except TypeError:
+				value = " "
+		else:
+			value = " "        
+		return value
+	
+############################################################################################################################	
+
 class Contact:
 
 	# init
@@ -307,6 +396,7 @@ class SkypeWidget(QtGui.QWidget):
 		if (daemon == False):
 			self.populateUI()
 
+	#-------------------------------------------------------------------------------
 
 	def populateUI(self):
 		
@@ -319,6 +409,11 @@ class SkypeWidget(QtGui.QWidget):
 		QtCore.QObject.connect(self.ui.callsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onCallsTreeClick)
 		self.ui.callsTree.setColumnHidden(0,True)
 		self.ui.callsTree.setColumnWidth(1,130)
+		
+		# UI settings for messages tab
+		QtCore.QObject.connect(self.ui.messagesTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onMessagesTreeClick)
+		self.ui.messagesTree.setColumnHidden(0,True)
+		self.ui.messagesTree.setColumnWidth(1,130)		
 	
 		# populating contacts tab
 		self.extractedContacts = self.get_contacts()
@@ -341,7 +436,20 @@ class SkypeWidget(QtGui.QWidget):
 			node.setText(3, call.status)
 			self.ui.callsTree.addTopLevelItem(node)
 			index += 1
+		
+		# populating messages tab
+		self.extractedMessages = self.get_chat_messages()
+		index = 0
+		for message in self.extractedMessages:
+			node = QtGui.QTreeWidgetItem(None)
+			node.setText(0, str(index))
+			node.setText(1, message.timestamp)
+			node.setText(2, message.author)
+			node.setText(3, message.dialog_partner)
+			self.ui.messagesTree.addTopLevelItem(node)
+			index += 1
 	
+	#-------------------------------------------------------------------------------
 	
 	def onContactsTreeClick(self):
 		currentSelectedElement = self.ui.contactsTree.currentItem()
@@ -404,6 +512,7 @@ class SkypeWidget(QtGui.QWidget):
 		else:
 			self.ui.imageLabel.hide()
 
+	#-------------------------------------------------------------------------------
 
 	def get_contacts(self):
 
@@ -492,9 +601,11 @@ class SkypeWidget(QtGui.QWidget):
 		connection.close()
 		
 		return contact_list
-		
+	
+	#-------------------------------------------------------------------------------
 
 	def onCallsTreeClick(self):
+	
 		currentSelectedElement = self.ui.callsTree.currentItem()
 		if (currentSelectedElement): pass
 		else: return		
@@ -531,6 +642,7 @@ class SkypeWidget(QtGui.QWidget):
 		self.ui.callsTable.resizeRowsToContents()
 		self.ui.callsTable.horizontalHeader().setStretchLastSection(True)
 
+	#-------------------------------------------------------------------------------
 
 	def get_calls(self):
 		
@@ -589,7 +701,101 @@ class SkypeWidget(QtGui.QWidget):
 	
 		return call_list
 
+	#-------------------------------------------------------------------------------
+	
+	def onMessagesTreeClick(self):
+	
+		currentSelectedElement = self.ui.messagesTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return		
+		
+		messageID = int(currentSelectedElement.text(0))
+		message = self.extractedMessages[messageID]
+		
+		elements = [
+			["Timestamp", message.timestamp],
+			["Author", message.author],
+			["From (display name)", message.from_dispname],
+			["Message", message.mess],
+			["Status", message.status if message.status != None else "None" ],
+			["Message type", str(message.mess_type)],
+			["Chat name", message.chatname],
+			["Edited timestamp", message.edited_timestamp],
+			["Dialog partner", message.dialog_partner],
+		]
+		
+		self.ui.messagesTable.clear()
+		self.ui.messagesTable.setHorizontalHeaderLabels(["Field", "Value"])
+		self.ui.messagesTable.setRowCount(100)
+		self.ui.messagesTable.setColumnCount(2)
+		
+		row = 0
+		for element in elements:
+			if (len(element[1].strip()) > 0):
+				newItem = QtGui.QTableWidgetItem(element[0])
+				self.ui.messagesTable.setItem(row, 0, newItem)	
+				newItem = QtGui.QTableWidgetItem(element[1])
+				self.ui.messagesTable.setItem(row, 1, newItem)
+				row = row + 1	
+				
+		self.ui.messagesTable.setRowCount(row)
+		self.ui.messagesTable.resizeColumnsToContents()		
+		self.ui.messagesTable.horizontalHeader().setStretchLastSection(True)
+		self.ui.messagesTable.resizeRowsToContents()
+		
+	#-------------------------------------------------------------------------------
 
+	def get_chat_messages(self):
+		
+		chat_messages_list = []
+		
+		# open database
+		connection = sqlite3.connect(self.filename)
+		connection.row_factory = sqlite3.Row
+
+		cursor = connection.cursor()
+		   
+		cursor.execute('SELECT * FROM Messages')
+		
+		messages = cursor.fetchall()
+		
+		for message in messages:
+			
+			# ------------------------------------------------------- #
+			#  Skype main.db file *** Messages TABLE  #
+			# ------------------------------------------------------- #
+			# message[0] --> id					message[1] --> is_permanent message[2] --> convo_id
+			# message[3] --> chatname			message[4] --> author 		message[5] --> from_dispname
+			# message[6] --> author_was_live	message[7] --> guid 		message[8] --> dialog_partner
+			# message[9] --> timestamp			message[10] --> type 		message[11] --> sending_status
+			# message[12] -->consumption_status	message[13] --> edited_by 	message[14] --> edited_timestamp
+			# message[15] --> param_key			message[16] --> param_value message[17] --> body_xml
+			# message[18] --> identities		message[19] --> reason 		message[20] --> leavereason
+			# message[21] --> participant_count	message[22] --> error_code 	message[23] --> chatmsg_type
+			# message[24] --> chatmsg_status	message[25] --> body_is_rawxml 		message[26] --> oldoptions
+			# message[27] --> newoptions		message[28] --> newrole 	message[29] --> pk_id
+			# message[30] --> crc				message[31] --> remote_id 	message[32] --> call_guid
+
+			record = len(chat_messages_list)
+				
+			curr_mess = Chat_message(
+				record, 
+				message["id"], 
+				message["timestamp"], 
+				message["author"], 
+				message["from_dispname"], 
+				message["body_xml"], 
+				message["chatmsg_status"], 
+				message["type"],
+				message["chatname"],
+				message["dialog_partner"], 
+				message["edited_timestamp"] 
+			)
+			chat_messages_list.append(curr_mess)
+		
+		return chat_messages_list
+
+############################################################################################################################
 
 def main(cursor, path):
 	return SkypeWidget(cursor, path)
