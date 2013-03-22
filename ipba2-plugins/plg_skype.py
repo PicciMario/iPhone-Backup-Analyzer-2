@@ -431,6 +431,52 @@ class Transfer:
 
 ############################################################################################################################
 
+class Group_chat:
+	
+	#init
+	def __init__(self, record, c_id, name, participants, posters, active_members, friendlyname, timestamp,
+	  last_change):
+
+			#message record
+			self.record = str(record)
+			#message id
+			self.c_id = str(c_id)
+
+			self.name = name
+			self.participants = participants
+			self.posters = posters
+			self.active_members = active_members
+			self.friendlyname = self.parse_text(friendlyname)
+			
+			#Parse various date times.
+			self.timestamp = self.parse_date(timestamp)
+			self.last_change = self.parse_date(last_change)
+
+	#Parse text method
+	def parse_text(self, value):    
+		try:
+			value = str(value)
+			if value == "None":
+				value = " "
+		except UnicodeEncodeError:
+			value = value.encode("utf-8")
+		return value
+		
+	#Parse date like 1357674582 into date like this Day-Month-Year Hour:Minute:Second		
+	def parse_date(self, value):
+		if value != 0:
+			try:
+				value = datetime.utcfromtimestamp(value)
+				value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+				value = value.strftime('%d-%m-%Y %H:%M:%S')
+			except TypeError:
+				value = " "
+		else:
+			value = " "        
+		return value
+
+############################################################################################################################
+
 class SkypeWidget(QtGui.QWidget):
 	
 	def __init__(self, cursor, path, daemon = False):
@@ -479,6 +525,11 @@ class SkypeWidget(QtGui.QWidget):
 		QtCore.QObject.connect(self.ui.transfersTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTransfersTreeClick)
 		self.ui.transfersTree.setColumnHidden(0,True)
 		self.ui.transfersTree.setColumnWidth(1,130)	
+
+		# UI settings for group chats tab
+		QtCore.QObject.connect(self.ui.groupChatsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onGroupChatsTreeClick)
+		self.ui.groupChatsTree.setColumnHidden(0,True)
+		self.ui.groupChatsTree.setColumnWidth(1,130)	
 	
 		# populating contacts tab
 		self.extractedContacts = self.get_contacts()
@@ -527,6 +578,17 @@ class SkypeWidget(QtGui.QWidget):
 			self.ui.transfersTree.addTopLevelItem(node)
 			index += 1
 	
+		# populating group chats tab
+		self.extractedGroupChats = self.get_group_chats()
+		index = 0
+		for groupChat in self.extractedGroupChats:
+			node = QtGui.QTreeWidgetItem(None)
+			node.setText(0, str(index))
+			node.setText(1, groupChat.timestamp)
+			node.setText(2, groupChat.participants)
+			self.ui.groupChatsTree.addTopLevelItem(node)
+			index += 1
+
 	#-------------------------------------------------------------------------------
 	
 	def onContactsTreeClick(self):
@@ -966,6 +1028,98 @@ class SkypeWidget(QtGui.QWidget):
 			transfers_list.append(curr_trans)
 		
 		return transfers_list
+
+	#-------------------------------------------------------------------------------
+		
+	def onGroupChatsTreeClick(self):
+	
+		currentSelectedElement = self.ui.groupChatsTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return		
+		
+		groupChatID = int(currentSelectedElement.text(0))
+		groupChat = self.extractedGroupChats[groupChatID]
+		
+		elements = [
+			["Name", groupChat.name],
+			["Participants", groupChat.participants],
+			["Posters", groupChat.posters],
+			["Active members", groupChat.active_members],
+			["Friendly name", groupChat.friendlyname],
+			["Timestamp", groupChat.timestamp],
+			["Last change", groupChat.last_change],
+		]
+		
+		self.ui.groupChatsTable.clear()
+		self.ui.groupChatsTable.setHorizontalHeaderLabels(["Field", "Value"])
+		self.ui.groupChatsTable.setRowCount(100)
+		self.ui.groupChatsTable.setColumnCount(2)
+		
+		row = 0
+		for element in elements:
+			if (len(element[1].strip()) > 0):
+				newItem = QtGui.QTableWidgetItem(element[0])
+				self.ui.groupChatsTable.setItem(row, 0, newItem)	
+				newItem = QtGui.QTableWidgetItem(element[1])
+				self.ui.groupChatsTable.setItem(row, 1, newItem)
+				row = row + 1	
+				
+		self.ui.groupChatsTable.setRowCount(row)
+		self.ui.groupChatsTable.resizeColumnsToContents()		
+		self.ui.groupChatsTable.horizontalHeader().setStretchLastSection(True)
+		self.ui.groupChatsTable.resizeRowsToContents()
+		
+	#-------------------------------------------------------------------------------
+
+	def get_group_chats(self):
+		
+		group_chat_list = []
+		
+		# open database
+		connection = sqlite3.connect(self.filename)
+		connection.row_factory = sqlite3.Row
+
+		cursor = connection.cursor()
+		   
+		cursor.execute('SELECT * FROM Chats WHERE type = 4')
+		
+		chats = cursor.fetchall()
+		
+		for chat in chats:
+			
+			# ------------------------------------------------------- #
+			#  Skype main.db file *** Chats TABLE  #
+			# ------------------------------------------------------- #
+			# chat[0] --> id						chat[1] --> is_permanent 		chat[2] --> name
+			# chat[3] --> options					chat[4] --> friendlyname 		chat[5] --> description
+			# chat[6] --> timestamp					chat[7] --> activity_timestamp	chat[8] --> dialog_partner
+			# chat[9] --> adder						chat[10] --> type 				chat[11] --> mystatus
+			# chat[12] --> myrole					chat[13] --> posters 			chat[14] --> participants
+			# chat[15] --> applicants				chat[16] --> banned_users 		chat[17] --> name_text
+			# chat[18] --> topic					chat[19] --> topic_xml 			chat[20] --> guidelines
+			# chat[21] --> picture					chat[22] --> alertstring 		chat[23] --> is_bookmarked
+			# chat[24] --> passwordhint				chat[25] --> unconsumed_suppressed_msg 		chat[26] --> unconsumed_normal_msg
+			# chat[27] --> unconsumed_elevated_msg	chat[28] --> unconsumed_msg_voice chat[29] --> activemembers
+			# chat[30] --> state_data				chat[31] --> lifesigns 			chat[32] --> last_change
+			# chat[33] --> first_unread_message		chat[34] --> pk_type 			chat[35] --> dbpath
+
+			record = len(group_chat_list)
+			
+			curr_chat = Group_chat(
+				record, 
+				chat["id"], 
+				chat["name"], 
+				chat["participants"], 
+				chat["posters"], 
+				chat["activemembers"], 
+				chat["friendlyname"], 
+				chat["timestamp"],
+				chat["last_change"]
+			)
+			  
+			group_chat_list.append(curr_chat)
+			
+		return group_chat_list
 
 ############################################################################################################################
 
