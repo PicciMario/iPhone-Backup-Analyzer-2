@@ -370,7 +370,64 @@ class Call:
 				value = " "
 		else:
 			value = " "        
-		return value		
+		return value	
+
+############################################################################################################################
+
+class Transfer:
+	
+	#init
+	def __init__(self, record, t_id, partner_handle, partner_dispname, filename, file_type, filepath,
+		filesize, bytestransferred, starttime, endtime, status):
+			
+			#call record
+			self.record = str(record)
+			
+			#call id
+			self.t_id = str(t_id)
+			
+			#Parse various date times.
+			self.starttime = self.parse_date(starttime)
+			self.endtime = self.parse_date(endtime)	
+	
+			self.partner_handle = partner_handle		
+			self.partner_dispname = partner_dispname
+			self.filename = filename            
+			self.file_type = self.check_type(file_type)          
+			self.filepath = filepath  
+			self.filesize = filesize  
+			self.bytestransferred = bytestransferred  
+			self.status = self.check_status(status)  
+
+	def check_type(self, value):
+		if value == 1:
+			value = "Incoming File Transfer"
+		elif value == 2:
+			value = "Outgoing File Transfer"
+		return value	
+
+	def check_status(self, value):
+		if value == 8:
+			value = "Completed"
+		elif value == 7:
+			value = "Aborted From Destination"	
+		elif value == 10:
+			value = "Aborted From Origin"	
+					
+		return value	
+
+	#Parse date like 1357674582 into date like this Day-Month-Year Hour:Minute:Second		
+	def parse_date(self, value):
+		if value != 0:
+			try:
+				value = datetime.utcfromtimestamp(value)
+				value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+				value = value.strftime('%d-%m-%Y %H:%M:%S')
+			except TypeError:
+				value = " "
+		else:
+			value = " "        
+		return value	
 
 ############################################################################################################################
 
@@ -388,6 +445,9 @@ class SkypeWidget(QtGui.QWidget):
 		self.backup_path = path
 		
 		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(cursor, filename="main.db", domaintype="AppDomain", domain="com.skype.skype"))
+
+		# TEST ONLY
+		#self.filename = "D:\Forensics\iPhone forensics\iPhone-Backup-Analyzer-2\main.db"
 
 		# check if files exist
 		if (not os.path.isfile(self.filename)):
@@ -413,7 +473,12 @@ class SkypeWidget(QtGui.QWidget):
 		# UI settings for messages tab
 		QtCore.QObject.connect(self.ui.messagesTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onMessagesTreeClick)
 		self.ui.messagesTree.setColumnHidden(0,True)
-		self.ui.messagesTree.setColumnWidth(1,130)		
+		self.ui.messagesTree.setColumnWidth(1,130)	
+
+		# UI settings for transfers tab
+		QtCore.QObject.connect(self.ui.transfersTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onTransfersTreeClick)
+		self.ui.transfersTree.setColumnHidden(0,True)
+		self.ui.transfersTree.setColumnWidth(1,130)	
 	
 		# populating contacts tab
 		self.extractedContacts = self.get_contacts()
@@ -447,6 +512,19 @@ class SkypeWidget(QtGui.QWidget):
 			node.setText(2, message.author)
 			node.setText(3, message.dialog_partner)
 			self.ui.messagesTree.addTopLevelItem(node)
+			index += 1
+
+		# populating transfers tab
+		self.extractedTransfers = self.get_transfers()
+		index = 0
+		for transfer in self.extractedTransfers:
+			node = QtGui.QTreeWidgetItem(None)
+			node.setText(0, str(index))
+			node.setText(1, transfer.starttime)
+			node.setText(2, transfer.partner_handle)
+			node.setText(3, transfer.filename)
+			node.setText(4, transfer.status)
+			self.ui.transfersTree.addTopLevelItem(node)
 			index += 1
 	
 	#-------------------------------------------------------------------------------
@@ -639,9 +717,9 @@ class SkypeWidget(QtGui.QWidget):
 				
 		self.ui.callsTable.setRowCount(row)
 		self.ui.callsTable.resizeColumnsToContents()		
-		self.ui.callsTable.resizeRowsToContents()
 		self.ui.callsTable.horizontalHeader().setStretchLastSection(True)
-
+		self.ui.callsTable.resizeRowsToContents()
+		
 	#-------------------------------------------------------------------------------
 
 	def get_calls(self):
@@ -755,7 +833,7 @@ class SkypeWidget(QtGui.QWidget):
 
 		cursor = connection.cursor()
 		   
-		cursor.execute('SELECT * FROM Messages')
+		cursor.execute('SELECT * FROM Messages ORDER BY timestamp')
 		
 		messages = cursor.fetchall()
 		
@@ -794,6 +872,100 @@ class SkypeWidget(QtGui.QWidget):
 			chat_messages_list.append(curr_mess)
 		
 		return chat_messages_list
+	#-------------------------------------------------------------------------------
+	
+	def onTransfersTreeClick(self):
+	
+		currentSelectedElement = self.ui.transfersTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return		
+		
+		transferID = int(currentSelectedElement.text(0))
+		transfer = self.extractedTransfers[transferID]
+		
+		elements = [
+			["Start time", transfer.starttime],
+			["End time", transfer.endtime],
+			["Partner handle", transfer.partner_handle],
+			["Partner display name", transfer.partner_dispname],
+			["Filename", transfer.filename],
+			["File type", transfer.file_type],
+			["File path", transfer.filepath],
+			["File size", transfer.filesize],
+			["Bytes transferred", transfer.bytestransferred],
+			["Status", transfer.status],
+		]
+		
+		self.ui.transfersTable.clear()
+		self.ui.transfersTable.setHorizontalHeaderLabels(["Field", "Value"])
+		self.ui.transfersTable.setRowCount(100)
+		self.ui.transfersTable.setColumnCount(2)
+		
+		row = 0
+		for element in elements:
+			if (element[1] == None):
+				element[1] = "None"
+			if (len(element[1].strip()) > 0):
+				newItem = QtGui.QTableWidgetItem(element[0])
+				self.ui.transfersTable.setItem(row, 0, newItem)	
+				newItem = QtGui.QTableWidgetItem(element[1])
+				self.ui.transfersTable.setItem(row, 1, newItem)
+				row = row + 1	
+				
+		self.ui.transfersTable.setRowCount(row)
+		self.ui.transfersTable.resizeColumnsToContents()		
+		self.ui.transfersTable.horizontalHeader().setStretchLastSection(True)
+		self.ui.transfersTable.resizeRowsToContents()
+		
+	#-------------------------------------------------------------------------------
+		
+	def get_transfers(self):
+		
+		transfers_list = []
+		
+		# open database
+		connection = sqlite3.connect(self.filename)
+		connection.row_factory = sqlite3.Row
+
+		cursor = connection.cursor()
+		   
+		cursor.execute('SELECT * FROM Transfers')
+		
+		transfers = cursor.fetchall()
+		
+		for transfer in transfers:
+			
+			# ------------------------------------------------------- #
+			#  Skype main.db file *** Transfers TABLE  #
+			# ------------------------------------------------------- #
+			# transfer[0] --> id				transfer[1] --> is_permanent 		transfer[2] --> type
+			# transfer[3] --> partner_handle	transfer[4] --> partner_dispname 	transfer[5] --> status
+			# transfer[6] --> failurereason		transfer[7] --> starttime 			transfer[8] --> finishtime
+			# transfer[9] --> filepath			transfer[10] --> filename 			transfer[11] --> filesize
+			# transfer[12] --> bytestransferred	transfer[13] --> bytespersecond 	transfer[14] --> chatmsg_guid
+			# transfer[15] --> chatmsg_index	transfer[16] --> convo_id 			transfer[17] --> pk_id
+			# transfer[18] --> nodeid			transfer[19] --> last_activity 		transfer[20] --> flags
+			# transfer[21] --> old_status		transfer[22] --> old_filepath 		transfer[23] --> accepttime
+			
+			record = len(transfers_list)
+						
+			curr_trans = Transfer(
+				record, 
+				transfer["id"], 
+				transfer["partner_handle"], 
+				transfer["partner_dispname"], 
+				transfer["filename"], 
+				transfer["type"], 
+				transfer["filepath"],
+				transfer["filesize"], 
+				transfer["bytestransferred"], 
+				transfer["starttime"], 
+				transfer["finishtime"], 
+				transfer["status"]
+			)
+			transfers_list.append(curr_trans)
+		
+		return transfers_list
 
 ############################################################################################################################
 
