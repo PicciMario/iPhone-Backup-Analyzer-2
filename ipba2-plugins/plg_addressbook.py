@@ -194,6 +194,17 @@ class AddressBookWidget(QtGui.QWidget):
 		query = "SELECT First, Last, Organization, Middle, Department, Note, Birthday, JobTitle, Nickname FROM ABPerson WHERE ROWID = \"%i\""%contactID
 		self.tempcur.execute(query)
 		user = self.tempcur.fetchall()[0]
+		
+		
+		# convert birthday
+		birthdayString = user['Birthday']
+		if (birthdayString):
+			try:
+				dateUnix = float(birthdayString) + 978307200 #JAN 1 1970
+				birthdayString = datetime.fromtimestamp(dateUnix).strftime('%Y-%b-%d')				
+			except:
+				pass
+		
 
 		records = [
 			["First name", user['First']],
@@ -202,7 +213,7 @@ class AddressBookWidget(QtGui.QWidget):
 			["Middle name", user['Middle']],
 			["Department", user['Department']],
 			["Note", user['Note']],
-			["Birthday", user['Birthday']],
+			["Birthday", birthdayString],
 			["Job Title", user['JobTitle']],
 			["Nickname", user['Nickname']],
 		]
