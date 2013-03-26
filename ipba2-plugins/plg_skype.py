@@ -477,6 +477,56 @@ class Group_chat:
 
 ############################################################################################################################
 
+class Voicemail:
+	
+	#init
+	def __init__(self, record, v_id, partner_handle, partner_dispname, subject, timestamp, duration, allowed_duration,
+	  size, path, failures, convo_id):
+
+		#message record
+		self.record = str(record)
+		#message id
+		self.v_id = str(v_id)
+		
+		self.partner_handle = partner_handle
+		self.partner_dispname = partner_dispname
+		self.subject = subject
+		self.duration = duration
+		self.allowed_duration = allowed_duration
+		self.size = self.parse_text(size)
+		self.path = path
+		self.failures = failures
+		self.convo_id = convo_id
+		
+		#Parse various date times.
+		self.timestamp = self.parse_date(timestamp)
+			
+			
+	#Parse text method
+	def parse_text(self, value):    
+		try:
+			value = str(value)
+			if value == "None":
+				value = " "
+		except UnicodeEncodeError:
+			value = value.encode("utf-8")
+		return value      
+
+	#Parse date like 1357674582 into date like this Day-Month-Year Hour:Minute:Second		
+	def parse_date(self, value):
+		if value != 0:
+			try:
+				value = datetime.utcfromtimestamp(value)
+				value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+				value = value.strftime('%d-%m-%Y %H:%M:%S')
+			except TypeError:
+				value = " "
+		else:
+			value = " "        
+		return value
+		
+############################################################################################################################
+
 class SkypeWidget(QtGui.QWidget):
 	
 	def __init__(self, cursor, path, daemon = False):
@@ -493,7 +543,7 @@ class SkypeWidget(QtGui.QWidget):
 		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(cursor, filename="main.db", domaintype="AppDomain", domain="com.skype.skype"))
 
 		# TEST ONLY
-		#self.filename = "D:\Forensics\iPhone forensics\iPhone-Backup-Analyzer-2\main.db"
+		self.filename = "D:\Forensics\iPhone forensics\iPhone-Backup-Analyzer-2\main.db"
 
 		# check if files exist
 		if (not os.path.isfile(self.filename)):
@@ -589,6 +639,18 @@ class SkypeWidget(QtGui.QWidget):
 			self.ui.groupChatsTree.addTopLevelItem(node)
 			index += 1
 
+		# populating voicemails tab
+		self.extractedVoicemails = self.get_voicemails()
+		index = 0
+		for voicemail in self.extractedVoicemails:
+			node = QtGui.QTreeWidgetItem(None)
+			node.setText(0, str(index))
+			node.setText(1, voicemail.timestamp)
+			node.setText(2, voicemail.partner_dispname)
+			node.setText(3, voicemail.subject)
+			self.ui.voicemailsTree.addTopLevelItem(node)
+			index += 1
+			
 	#-------------------------------------------------------------------------------
 	
 	def onContactsTreeClick(self):
@@ -1120,6 +1182,99 @@ class SkypeWidget(QtGui.QWidget):
 			group_chat_list.append(curr_chat)
 			
 		return group_chat_list
+
+	#-------------------------------------------------------------------------------
+		
+	def onVoicemailsTreeClick(self):
+	
+		currentSelectedElement = self.ui.voicemailsTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return		
+		
+		voicemailID = int(currentSelectedElement.text(0))
+		voicemail = self.extractedVoicemails[voicemailID]
+		
+		elements = [
+			["Partner handle", voicemail.partner_handle],
+			["Partner display name", voicemail.partner_dispname],
+			["Timestamp", voicemail.timestamp],
+			["Subject", voicemail.subject],
+			["Duration", voicemail.duration],
+			["Allowed duration", voicemail.allowed_duration],
+			["Size", voicemail.size],
+			["Path", voicemail.path],
+			["Failures", voicemail.failures],
+			["Convo ID", voicemail.convo_id],
+		]
+		
+		self.ui.voicemailsTable.clear()
+		self.ui.voicemailsTable.setHorizontalHeaderLabels(["Field", "Value"])
+		self.ui.voicemailsTable.setRowCount(100)
+		self.ui.voicemailsTable.setColumnCount(2)
+		
+		row = 0
+		for element in elements:
+			if (len(element[1].strip()) > 0):
+				newItem = QtGui.QTableWidgetItem(element[0])
+				self.ui.voicemailsTable.setItem(row, 0, newItem)	
+				newItem = QtGui.QTableWidgetItem(element[1])
+				self.ui.voicemailsTable.setItem(row, 1, newItem)
+				row = row + 1	
+				
+		self.ui.voicemailsTable.setRowCount(row)
+		self.ui.voicemailsTable.resizeColumnsToContents()		
+		self.ui.voicemailsTable.horizontalHeader().setStretchLastSection(True)
+		self.ui.voicemailsTable.resizeRowsToContents()
+
+	#-------------------------------------------------------------------------------
+
+	def get_voicemails(self):
+		
+		voicemails_list = []
+		
+		# open database
+		connection = sqlite3.connect(self.filename)
+		connection.row_factory = sqlite3.Row
+
+		cursor = connection.cursor()
+		   
+		cursor.execute('SELECT * FROM Voicemails')
+		
+		voicemails = cursor.fetchall()
+		
+		for voice in voicemails:
+			
+			# ------------------------------------------------------- #
+			#  Skype main.db file *** Voicemails TABLE  #
+			# ------------------------------------------------------- #
+			# voice[0] --> id				voice[1] --> is_permanent 		voice[2] --> type
+			# voice[3] --> partner_handle	voice[4] --> partner_dispname 	voice[5] --> status
+			# voice[6] --> failurereason	voice[7] --> subject 			voice[8] --> timestamp
+			# voice[9] --> duration			voice[10] --> allowed_duration 	voice[11] --> playback_progress
+			# voice[12] --> convo_id		voice[13] --> chatmsg_guid 		voice[14] --> notification_id
+			# voice[15] --> flags			voice[16] --> size 				voice[17] --> path
+			# voice[18] --> failures		voice[19] --> vflags 			voice[20] --> xmsg
+
+			record = len(voicemails_list)
+			
+			curr_voice = Voicemail(
+				record, 
+				voice["id"], 
+				voice["partner_handle"], 
+				voice["partner_dispname"], 
+				voice["subject"], 
+				voice["timestamp"], 
+				voice["duration"], 
+				voice["allowed_duration"],
+				voice["size"], 
+				voice["path"], 
+				voice["failures"], 
+				voice["convo_id"]	
+			)
+			
+			voicemails_list.append(curr_voice)
+		
+		return voicemails_list
 
 ############################################################################################################################
 
