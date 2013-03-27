@@ -115,12 +115,26 @@ class AddressBookWidget(QtGui.QWidget):
 		
 		# search label
 		self.connect(self.ui.searchLabel, QtCore.SIGNAL('textChanged(QString)'), self.search)
-			
-		self.ui.contactsTree.setColumnHidden(1,True)
+		
+		# hidden columns in tree
+		self.ui.contactsTree.setColumnHidden(1,True)	# contact ID
+		self.ui.contactsTree.setColumnHidden(2,True)	# reserved for phone number (for searching)
+		self.ui.contactsTree.setColumnHidden(3,True)	# reserved for phone number (for searching)
+		self.ui.contactsTree.setColumnHidden(4,True)	# reserved for phone number (for searching)
+		self.ui.contactsTree.setColumnHidden(5,True)	# reserved for phone number (for searching)
+		self.ui.contactsTree.setColumnHidden(6,True)	# reserved for email (for searching)
+		self.ui.contactsTree.setColumnHidden(7,True)	# reserved for email (for searching)
+		self.ui.contactsTree.setColumnHidden(8,True)	# reserved for email (for searching)
+		self.ui.contactsTree.setColumnHidden(9,True)	# reserved for email (for searching)
 		
 		self.ui.imageLabel.hide()
 	
 		contacts = self.retrieveGroups()
+		
+		# opening database (querying for phone numbers for searching)
+		self.tempdb = sqlite3.connect(self.filename)
+		self.tempdb.row_factory = sqlite3.Row
+		self.tempcur = self.tempdb.cursor()
 		
 		for group in contacts:
 			groupName = str(group[0].encode("utf-8"))
@@ -134,17 +148,44 @@ class AddressBookWidget(QtGui.QWidget):
 			for contact in groupContacts:
 				contactID = str(contact[0])
 				contactName = contact[1]
-				
+								
 				contactNode = QtGui.QTreeWidgetItem(groupNode)
 				contactNode.setText(1, contactID)
 				contactNode.setText(0, contactName)
-				self.ui.contactsTree.addTopLevelItem(contactNode)					
+				
+				# columns 2-5 for phone numbers (for searching)
+				numbers = self.getNumbersForContactID(contactID)
+				column = 2
+				for number in numbers[0:4]:
+					contactNode.setText(column, str(number))
+					column += 1
+
+				# columns 6-9 for emails (for searching)
+				emails = self.getEmailsForContactID(contactID)
+				column = 6
+				for email in emails[0:4]:
+					contactNode.setText(column, str(email))
+					column += 1				
+				
+				self.ui.contactsTree.addTopLevelItem(contactNode)	
+		
+		self.tempdb.close()
 
 
 	def search(self, text):
 		
 		allItems = self.ui.contactsTree.findItems("", QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, 0)
 		matching = self.ui.contactsTree.findItems(text, QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, 0)
+		
+		# searching in columns for phone numbers or emails
+		for column in [2, 3, 4, 5]:
+			matchingByNum = self.ui.contactsTree.findItems(text.replace(" ", "").replace("-", ""), QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, column)
+			for element in matchingByNum:
+				matching.append(element)
+		for column in [6,7,8,9]:
+			matchingByNum = self.ui.contactsTree.findItems(text, QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive, column)
+			for element in matchingByNum:
+				matching.append(element)
 		
 		for element in allItems:
 			if (element.parent()):
@@ -166,6 +207,37 @@ class AddressBookWidget(QtGui.QWidget):
 				
 		if (len(matching) == 0):
 			self.ui.contactsTree.setCurrentItem(None)
+		
+		self.onContactClick()
+			
+			
+	def getNumbersForContactID(self, contactID):
+	
+		# multivalues with property = 3 (phone numbers)
+		query = "SELECT value FROM ABMultiValue WHERE property = 3 AND record_id = ?;"
+		self.tempcur.execute(query, (contactID,))
+		multivalues = self.tempcur.fetchall()
+		
+		numbers = []
+		for number in multivalues:
+			number = number[0].replace(" ", "").replace("-", "")
+			numbers.append(number)	
+		return numbers
+		
+		
+	def getEmailsForContactID(self, contactID):
+	
+		# multivalues with property = 4 (emails)
+		query = "SELECT value FROM ABMultiValue WHERE property = 4 AND record_id = ?;"
+		self.tempcur.execute(query, (contactID,))
+		multivalues = self.tempcur.fetchall()
+		
+		emails = []
+		for email in multivalues:
+			email = email[0]
+			emails.append(email)	
+		return emails		
+
 
 	def onContactClick(self):
 	
