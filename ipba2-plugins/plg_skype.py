@@ -524,7 +524,164 @@ class Voicemail:
 		else:
 			value = " "        
 		return value
+
+
+############################################################################################################################
+
+class Account:
+	
+	# init
+	def __init__(self, record, a_id, skypename, displayname, fullname, birthday, gender, img, city, province,
+	 country, lastonline_timestamp,home_phone, office_phone, mobile_phone, emails, homepage, about, creation_date, mood_text, lastused_timestamp, avatar, avatar_timestamp):
+
+		#record
+		self.record = str(record)
+		#contact id
+		self.a_id = str(a_id)
 		
+		#Skypename
+		self.skypename = str(skypename)
+		
+		#Displayname
+		self.displayname = self.parse_text(displayname)
+		#Fullname
+		self.fullname = self.parse_text(fullname)
+		
+		#Birthday
+		self.birthday = str(birthday)
+		#print self.birthday
+		if self.birthday == "None" or self.birthday == "0":
+			self.birthday = " "
+		elif self.birthday.isdigit() is True:
+			#print self.birthday
+			year = self.birthday[0:4]
+			month = self.birthday[4:6]
+			day = self.birthday[6:8]
+			self.birthday = day + "-" + month + "-" + year
+		
+		#Parse various date times.
+		self.lastonline_timestamp = self.parse_date(lastonline_timestamp)
+		self.lastused_timestamp = self.parse_date(lastused_timestamp)
+		self.avatar_timestamp = self.parse_date(avatar_timestamp)
+		 
+		#Use a different parser because the date is not like 1202680620 but like 20044677,
+		#both equal to 2008-02-10 21:57:00
+		self.creation_date = self.parse_creation(creation_date)
+			
+		#Gender
+		self.img, self.gender = self.check_gender(gender)	
+		
+		#city text
+		self.city = self.parse_text(city)
+		
+		#province text
+		self.province = self.parse_text(province)
+		
+		#country text
+		self.country = self.parse_text(country)
+		
+		#home_phone text
+		self.home_phone = self.parse_text(home_phone)
+		
+		#office_phone text
+		self.office_phone = self.parse_text(office_phone)
+		
+		#mobile_phone text
+		self.mobile_phone = self.parse_text(mobile_phone)
+		
+		#emails text
+		self.emails = self.parse_text(emails)
+		
+		#homepage text
+		self.homepage = self.parse_text(homepage)
+		
+		#about text        
+		self.about = self.parse_text(about)        
+		
+		#mood text
+		self.mood_text = self.parse_text(mood_text)
+		
+		#avatar image
+		#Save the avatar image to a img/avatar/ folder.
+		#This image is named by (contact_id)_avatar.jpg
+		#Change the value of self.avatar to path+(id)_avatar.jpg
+		
+		if (avatar != None):
+			self.avatar = avatar[1:]
+		else:
+			self.avatar = None
+		
+		#output_avatar = this_report_complete_tree+self.a_id+"_avatar.jpg"
+		#if self.avatar != None:
+		#	with open(output_avatar, "wb") as o:
+		#		o.write(self.avatar[1:])    
+		#		o.close()
+		#		self.avatar = "avatar/"+self.a_id+"_avatar.jpg"
+		#else:
+		#	self.avatar = " "        
+		
+		
+	def __str__(self):
+		id_to_string = self.c_id
+		skypename_to_string = self.skypename
+		mood_to_string = self.mood_text
+
+		return id_to_string, skypename_to_string, mood_to_string
+	
+	
+	#Parse text method
+	def parse_text(self, value):    
+		try:
+			value = str(value)
+			if "<script" in value:
+				value = "<textarea>"+value+"</textarea>"
+			if value == "None":
+				value = " "
+		except UnicodeEncodeError:
+			value = value.encode("utf-8")
+		return value
+
+	
+	def parse_creation (self,value):
+		try:
+			value = value*60
+			value = datetime.fromtimestamp(value)
+			value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+			value = value.strftime('%d-%m-%Y %H:%M:%S')
+		except TypeError:
+			value = " "
+		return value
+
+
+	def check_gender(self, gender):
+		img = gender
+
+		if gender == 1:
+			img = "../../resources/male.png"
+			gender = "Male"
+		elif gender == 2:
+			img = "../../resources/female.png"
+			gender = "Female"
+		else:
+			img = " "
+			gender = " "
+
+		return img, gender
+
+
+	#Parse date like 1357674582 into date like this Day-Month-Year Hour:Minute:Second		
+	def parse_date(self, value):
+		if value != 0:
+			try:
+				value = datetime.utcfromtimestamp(value)
+				value = datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+				value = value.strftime('%d-%m-%Y %H:%M:%S')
+			except TypeError:
+				value = " "
+		else:
+			value = " "        
+		return value
+
 ############################################################################################################################
 
 class SkypeWidget(QtGui.QWidget):
@@ -543,7 +700,7 @@ class SkypeWidget(QtGui.QWidget):
 		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(cursor, filename="main.db", domaintype="AppDomain", domain="com.skype.skype"))
 
 		# TEST ONLY
-		self.filename = "D:\Forensics\iPhone forensics\iPhone-Backup-Analyzer-2\main.db"
+		#self.filename = "D:\Forensics\iPhone forensics\iPhone-Backup-Analyzer-2\main.db"
 
 		# check if files exist
 		if (not os.path.isfile(self.filename)):
@@ -579,7 +736,13 @@ class SkypeWidget(QtGui.QWidget):
 		# UI settings for group chats tab
 		QtCore.QObject.connect(self.ui.groupChatsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onGroupChatsTreeClick)
 		self.ui.groupChatsTree.setColumnHidden(0,True)
-		self.ui.groupChatsTree.setColumnWidth(1,130)	
+		self.ui.groupChatsTree.setColumnWidth(1,130)
+
+		# UI settings for accounts tab
+		QtCore.QObject.connect(self.ui.accountsTree, QtCore.SIGNAL("itemSelectionChanged()"), self.onAccountsTreeClick)
+		self.ui.accountsTree.setColumnHidden(0,True)
+		self.ui.accountsTree.setColumnWidth(1,130)	
+		self.ui.accountLabel.hide()
 	
 		# populating contacts tab
 		self.extractedContacts = self.get_contacts()
@@ -649,6 +812,17 @@ class SkypeWidget(QtGui.QWidget):
 			node.setText(2, voicemail.partner_dispname)
 			node.setText(3, voicemail.subject)
 			self.ui.voicemailsTree.addTopLevelItem(node)
+			index += 1
+
+		# populating accounts tab
+		self.extractedAccounts = self.get_accounts()
+		index = 0
+		for account in self.extractedAccounts:
+			node = QtGui.QTreeWidgetItem(None)
+			node.setText(0, str(index))
+			node.setText(1, account.skypename)
+			node.setText(2, account.fullname)
+			self.ui.accountsTree.addTopLevelItem(node)
 			index += 1
 			
 	#-------------------------------------------------------------------------------
@@ -1275,6 +1449,159 @@ class SkypeWidget(QtGui.QWidget):
 			voicemails_list.append(curr_voice)
 		
 		return voicemails_list
+	
+	#-------------------------------------------------------------------------------
+
+	def onAccountsTreeClick(self):
+	
+		currentSelectedElement = self.ui.accountsTree.currentItem()
+		if (currentSelectedElement): pass
+		else: return		
+		
+		accountID = int(currentSelectedElement.text(0))
+		account = self.extractedAccounts[accountID]
+		
+		elements = [
+			["Skype name", account.skypename],
+			["Display name", account.displayname],
+			["Full name", account.fullname],
+			["Birthday", account.birthday],
+			["Last time online", account.lastonline_timestamp],
+			["Last time used", account.lastused_timestamp],
+			["Avatar timestamp", account.avatar_timestamp],
+			["Creation date", account.creation_date],
+			["Gender", account.gender],
+			["City", account.city],
+			["Province", account.province],
+			["Country", account.country],
+			["Home phone", account.home_phone],
+			["Office phone", account.office_phone],
+			["Mobile phone", account.mobile_phone],
+			["Emails", account.emails],
+			["Homepage", account.homepage],
+			["About", account.about],
+			["Mood text", account.mood_text],
+		]
+		
+		self.ui.accountsTable.clear()
+		self.ui.accountsTable.setHorizontalHeaderLabels(["Field", "Value"])
+		self.ui.accountsTable.setRowCount(100)
+		self.ui.accountsTable.setColumnCount(2)
+		
+		row = 0
+		for element in elements:
+			if (len(element[1].strip()) > 0):
+				newItem = QtGui.QTableWidgetItem(element[0])
+				self.ui.accountsTable.setItem(row, 0, newItem)	
+				newItem = QtGui.QTableWidgetItem(element[1])
+				self.ui.accountsTable.setItem(row, 1, newItem)
+				row = row + 1	
+				
+		self.ui.accountsTable.setRowCount(row)
+		self.ui.accountsTable.resizeColumnsToContents()		
+		self.ui.accountsTable.horizontalHeader().setStretchLastSection(True)
+		self.ui.accountsTable.resizeRowsToContents()
+		
+		# Image data
+		imagedata = account.avatar
+		if (imagedata != None):
+			im = QtCore.QByteArray(imagedata)	
+			qimg = QtGui.QImage.fromData(im)
+			qpixmap = QtGui.QPixmap.fromImage(qimg).scaled(120, 120, QtCore.Qt.KeepAspectRatio)
+			
+			self.ui.accountLabel.setPixmap(qpixmap)
+			self.ui.accountLabel.show()
+		else:
+			self.ui.accountLabel.hide()
+	
+	#-------------------------------------------------------------------------------
+	
+	def get_accounts(self):    
+	
+		account_list = []
+		
+		# open database
+		connection = sqlite3.connect(self.filename)
+		connection.row_factory = sqlite3.Row
+
+		cursor = connection.cursor()
+		   
+		#Get the name of each table in the database.
+		cursor.execute('SELECT * FROM Accounts')
+		
+		accounts = cursor.fetchall()
+		
+		for account in accounts:
+			
+			# ------------------------------------------------------- #
+			#  Skype main.db file *** Accounts TABLE  #
+			# ------------------------------------------------------- #
+			# accounts[0] --> id						accounts[1] --> is_permanent 				accounts[2] --> status
+			# accounts[3] --> pwdchangestatus			accounts[4] --> logoutreason 				accounts[5] --> commitstatus
+			# accounts[6] --> suggested_skypename		accounts[7] --> skypeout_balance_currency 	accounts[8] --> skypeout_balance
+			# accounts[9] --> skypeout_precision		accounts[10] --> skypein_numbers 			accounts[11] --> subscriptions
+			# accounts[12] --> cblsyncstatus			accounts[13] --> offline_callforward 		accounts[14] --> chat_policy
+			# accounts[15] --> skype_call_policy		accounts[16] --> pstn_call_policy 			accounts[17] --> avatar_policy
+			# accounts[18] --> buddycount_policy		accounts[19] --> timezone_policy 			accounts[20] --> webpresence_policy
+			# accounts[21] --> phonenumbers_policy		accounts[22] --> voicemail_policy 			accounts[23] --> authrequest_policy
+			# accounts[24] --> ad_policy				accounts[25] --> partner_optedout 			accounts[26] --> service_provider_info
+			# accounts[27] --> registration_timestamp	accounts[28] --> nr_of_other_instances 		accounts[29] --> partner_channel_status
+			# accounts[30] --> flamingo_xmpp_status		accounts[31] --> federated_presence_policy 	accounts[32] --> owner_under_legal_age
+			# accounts[33] --> type						accounts[34] --> skypename 					accounts[35] --> pstnnumber
+			# accounts[36] --> fullname					accounts[37] --> birthday 					accounts[38] --> gender
+			# accounts[39] --> languages				accounts[40] --> country 					accounts[41] --> province
+			# accounts[42] --> city						accounts[43] --> phone_home 				accounts[44] --> phone_office
+			# accounts[45] --> phone_mobile				accounts[46] --> emails 					accounts[47] --> homepage
+			# accounts[48] --> about					accounts[49] --> profile_timestamp 			accounts[50] --> received_authrequest
+			# accounts[51] --> displayname				accounts[52] --> refreshing 				accounts[53] --> given_authlevel
+			# accounts[54] --> aliases					accounts[55] --> authreq_timestamp 			accounts[56] --> mood_text
+			# accounts[57] --> timezone					accounts[58] --> nrof_authed_buddies 		accounts[59] --> ipcountry
+			# accounts[60] --> given_displayname		accounts[61] --> availability 				accounts[62] --> lastonline_timestamp
+			# accounts[63] --> capabilities				accounts[64] --> avatar_image 				accounts[65] --> assigned_speeddial
+			# accounts[66] --> lastused_timestamp		accounts[67] --> authrequest_count 			accounts[68] --> assigned_comment
+			# accounts[69] --> alertstring				accounts[70] --> avatar_timestamp 			accounts[71] --> mood_timestamp
+			# accounts[72] --> rich_mood_text			accounts[73] --> synced_email 				accounts[74] --> set_availability
+			# accounts[75] --> options_change_future	accounts[76] --> cbl_profile_blob 			accounts[77] --> authorized_time
+			# accounts[78] --> sent_authrequest			accounts[79] --> sent_authrequest_time 		accounts[80] --> sent_authrequest_serial
+			# accounts[81] --> buddyblob				accounts[82] --> cbl_future 				accounts[83] --> node_capabilities
+			# accounts[84] --> node_capabilities_and	accounts[85] --> revoked_auth 				accounts[86] --> added_in_shared_group
+			# accounts[87] --> in_shared_group			accounts[88] --> authreq_history 			accounts[89] --> profile_attachments
+			# accounts[90] --> stack_version			accounts[91] --> offline_authreq_id 		accounts[92] --> verified_email
+			# accounts[93] --> verified_company			accounts[94] --> liveid_membername 			accounts[95] --> roaming_history_enabled
+						
+			record = len(account_list)
+			
+			curr_account = Account(
+				record, 
+				account["id"], 
+				account["skypename"], 
+				account["displayname"], 
+				account["fullname"], 
+				account["birthday"], 
+				account["gender"], 
+				None, 
+				account["city"], 
+				account["province"], 
+				account["country"], 
+				account["lastonline_timestamp"], 
+				account["phone_home"], 
+				account["phone_office"], 
+				account["phone_mobile"], 
+				account["emails"], 
+				account["homepage"], 
+				account["about"], 
+				account["registration_timestamp"],  
+				account["mood_text"], 
+				account["lastused_timestamp"], 
+				account["avatar_image"], 
+				account["avatar_timestamp"],
+			)        
+			
+			account_list.append(curr_account)
+		
+		connection.close()
+		
+		return account_list	
 
 ############################################################################################################################
 
