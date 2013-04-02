@@ -32,7 +32,7 @@ iPBAVersionDate = "mar 2013"
 # --- GENERIC IMPORTS -----------------------------------------------------------------------------
 
 import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
-import mbdbdecoding, plistutils, magic, webbrowser
+import mbdbdecoding, plistutils, magic, webbrowser, traceback
 
 # homemade library to build html reports
 import html_util
@@ -779,6 +779,11 @@ class IPBA2(QtGui.QMainWindow):
 		detailedText += "\nDescription: %s"%str(sys.exc_info()[1])
 		detailedText += "\nFile: %s"%os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
 		detailedText += "\nLine: %s"%str(sys.exc_info()[2].tb_lineno)
+		
+		detailedText += "\n\nTraceback:\n"
+		exc_type, exc_value, exc_traceback = sys.exc_info()
+		for line in traceback.format_tb(exc_traceback):
+			detailedText += "- %s"%line
 		
 		msgBox.setDetailedText(detailedText)
 		msgBox.exec_()		
