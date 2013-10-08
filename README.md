@@ -38,6 +38,12 @@ Requires:
 
 * QT
 
+# Running on Linux
+
+* run `make debian` to install the required python libraries.
+* run `make build` to build/compile the Qt/UI files (required once)
+* run `make run` to start the iPhone Backup Analyzer program.
+
 # Plugins
 
 The plugins system provides an easy way to program additional views to extract and present specific data to the end user. The plugins must adhere to the following standards, and they will be loaded automatically and presented to the user in a menu on the main UI.
