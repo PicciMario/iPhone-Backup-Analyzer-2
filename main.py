@@ -568,6 +568,7 @@ class IPBA2(QtGui.QMainWindow):
 		# File menu
 		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackup)
 		QtCore.QObject.connect(self.ui.menu_closearchive, QtCore.SIGNAL("triggered(bool)"), self.closeBackup)
+		QtCore.QObject.connect(self.ui.menu_quit, QtCore.SIGNAL("triggered(bool)"), self.quitApp)
 		
 		# About menu
 		QtCore.QObject.connect(self.ui.actionAbout, QtCore.SIGNAL("triggered(bool)"), self.about)
@@ -826,6 +827,9 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.imagePreviewLabel.clear()
 		self.ui.fileTree.clear()
 		self.ui.mdiArea.closeAllSubWindows()
+
+	def quitApp(self):
+		QtGui.QApplication.quit()
 
 
 	def nextWindow(self):

@@ -198,7 +198,7 @@
      <x>0</x>
      <y>0</y>
      <width>1120</width>
-     <height>21</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuPlugins">
@@ -217,6 +217,8 @@
     </property>
     <addaction name="menu_openarchive"/>
     <addaction name="menu_closearchive"/>
+    <addaction name="separator"/>
+    <addaction name="menu_quit"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
@@ -310,6 +312,9 @@
    <property name="text">
     <string>Open archive</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
   </action>
   <action name="menu_closearchive">
    <property name="icon">
@@ -335,6 +340,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="menu_quit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>
