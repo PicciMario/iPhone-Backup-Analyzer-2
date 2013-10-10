@@ -203,17 +203,17 @@
    </property>
    <widget class="QMenu" name="menuPlugins">
     <property name="title">
-     <string>Plugins</string>
+     <string>&amp;Plugins</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuReports">
     <property name="title">
-     <string>Reports</string>
+     <string>&amp;Reports</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="menu_openarchive"/>
     <addaction name="menu_closearchive"/>
@@ -228,14 +228,14 @@
    </widget>
    <widget class="QMenu" name="menuWindows">
     <property name="title">
-     <string>View</string>
+     <string>&amp;View</string>
     </property>
     <addaction name="actionToggleLeft"/>
     <addaction name="actionToggleRight"/>
    </widget>
    <widget class="QMenu" name="menuWindow">
     <property name="title">
-     <string>Window</string>
+     <string>&amp;Window</string>
     </property>
     <addaction name="actionTile"/>
     <addaction name="actionCascade"/>
@@ -281,7 +281,7 @@
      <normaloff>:/icons/images/next.png</normaloff>:/icons/images/next.png</iconset>
    </property>
    <property name="text">
-    <string>Next Window</string>
+    <string>&amp;Next Window</string>
    </property>
    <property name="toolTip">
     <string>Next window</string>
@@ -296,7 +296,7 @@
      <normaloff>:/icons/images/prev.png</normaloff>:/icons/images/prev.png</iconset>
    </property>
    <property name="text">
-    <string>Previous Window</string>
+    <string>&amp;Previous Window</string>
    </property>
    <property name="toolTip">
     <string>Previous window</string>
@@ -311,7 +311,7 @@
      <normaloff>:/icons/images/tile.png</normaloff>:/icons/images/tile.png</iconset>
    </property>
    <property name="text">
-    <string>Tile Windows</string>
+    <string>&amp;Tile Windows</string>
    </property>
    <property name="toolTip">
     <string>Tile windows</string>
@@ -323,7 +323,7 @@
      <normaloff>:/icons/images/open.png</normaloff>:/icons/images/open.png</iconset>
    </property>
    <property name="text">
-    <string>Open archive</string>
+    <string>&amp;Open archive</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -335,7 +335,7 @@
      <normaloff>:/icons/images/close.png</normaloff>:/icons/images/close.png</iconset>
    </property>
    <property name="text">
-    <string>Close archive</string>
+    <string>&amp;Close archive</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -355,7 +355,7 @@
      <normaloff>:/icons/images/rightSideBar.png</normaloff>:/icons/images/rightSideBar.png</iconset>
    </property>
    <property name="text">
-    <string>File Information Bar</string>
+    <string>File &amp;Information Bar</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
@@ -363,7 +363,7 @@
   </action>
   <action name="menu_quit">
    <property name="text">
-    <string>Quit</string>
+    <string>&amp;Quit</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
@@ -377,7 +377,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Filesystem Bar</string>
+    <string>&amp;Filesystem Bar</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
@@ -385,12 +385,12 @@
   </action>
   <action name="actionCascade">
    <property name="text">
-    <string>Cascade Windows</string>
+    <string>&amp;Cascade Windows</string>
    </property>
   </action>
   <action name="actionMaximizeWindow">
    <property name="text">
-    <string>Maximize</string>
+    <string>Ma&amp;ximize</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Up</string>
@@ -398,7 +398,7 @@
   </action>
   <action name="actionNormalWindow">
    <property name="text">
-    <string>Restore</string>
+    <string>&amp;Restore</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Down</string>
@@ -406,7 +406,7 @@
   </action>
   <action name="actionMinimizeWindow">
    <property name="text">
-    <string>Minimize</string>
+    <string>Minimi&amp;ze</string>
    </property>
   </action>
   <action name="actionViewAsTabs">
@@ -417,7 +417,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>View as Tabs</string>
+    <string>&amp;View as Tabs</string>
    </property>
   </action>
  </widget>
