@@ -243,6 +243,8 @@
     <addaction name="actionNormalWindow"/>
     <addaction name="actionMinimizeWindow"/>
     <addaction name="separator"/>
+    <addaction name="actionViewAsTabs"/>
+    <addaction name="separator"/>
     <addaction name="actionNext"/>
     <addaction name="actionPrev"/>
    </widget>
@@ -405,6 +407,17 @@
   <action name="actionMinimizeWindow">
    <property name="text">
     <string>Minimize</string>
+   </property>
+  </action>
+  <action name="actionViewAsTabs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>View as Tabs</string>
    </property>
   </action>
  </widget>

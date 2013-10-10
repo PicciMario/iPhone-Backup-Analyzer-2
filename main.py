@@ -585,11 +585,13 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionMaximizeWindow.triggered.connect(self.maximizeWindow)
 		self.ui.actionNormalWindow.triggered.connect(self.normalWindow)
 		self.ui.actionMinimizeWindow.triggered.connect(self.minimizeWindow)
+		self.ui.actionViewAsTabs.triggered.connect(self.viewAsTabs)
 		
 		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
 		self.ui.actionToggleLeft.triggered.connect(self.toggleLeft)
 		self.showRightSidebar = True
 		self.showLeftSidebar = True
+		self.viewWindowsAsTabs = False
 		
 		# show about window on startup
 		self.about()
@@ -866,6 +868,12 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.mdiArea.currentSubWindow().showNormal()
 	def minimizeWindow(self):
 		self.ui.mdiArea.currentSubWindow().showMinimized()
+	def viewAsTabs(self):
+		self.viewWindowsAsTabs = not self.viewWindowsAsTabs
+		if self.viewWindowsAsTabs:
+			self.ui.mdiArea.setViewMode(self.ui.mdiArea.TabbedView)
+		else:
+			self.ui.mdiArea.setViewMode(self.ui.mdiArea.SubWindowView)
 
 	# builds context menu
 	def ctxMenu(self, pos):
