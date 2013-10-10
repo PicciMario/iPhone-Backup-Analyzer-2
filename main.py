@@ -581,6 +581,10 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionNext.triggered.connect(self.nextWindow)
 		self.ui.actionPrev.triggered.connect(self.prevWindow)
 		self.ui.actionTile.triggered.connect(self.tileWindow)
+		self.ui.actionCascade.triggered.connect(self.cascadeWindow)
+		self.ui.actionMaximizeWindow.triggered.connect(self.maximizeWindow)
+		self.ui.actionNormalWindow.triggered.connect(self.normalWindow)
+		self.ui.actionMinimizeWindow.triggered.connect(self.minimizeWindow)
 		
 		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
 		self.ui.actionToggleLeft.triggered.connect(self.toggleLeft)
@@ -854,6 +858,14 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.mdiArea.activatePreviousSubWindow()
 	def tileWindow(self):
 		self.ui.mdiArea.tileSubWindows()
+	def cascadeWindow(self):
+		self.ui.mdiArea.cascadeSubWindows()
+	def maximizeWindow(self):
+		self.ui.mdiArea.currentSubWindow().showMaximized()
+	def normalWindow(self):
+		self.ui.mdiArea.currentSubWindow().showNormal()
+	def minimizeWindow(self):
+		self.ui.mdiArea.currentSubWindow().showMinimized()
 
 	# builds context menu
 	def ctxMenu(self, pos):

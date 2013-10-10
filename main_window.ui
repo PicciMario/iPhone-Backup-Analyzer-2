@@ -230,17 +230,27 @@
     <property name="title">
      <string>View</string>
     </property>
-    <addaction name="actionPrev"/>
-    <addaction name="actionNext"/>
-    <addaction name="actionTile"/>
-    <addaction name="separator"/>
     <addaction name="actionToggleLeft"/>
     <addaction name="actionToggleRight"/>
+   </widget>
+   <widget class="QMenu" name="menuWindow">
+    <property name="title">
+     <string>Window</string>
+    </property>
+    <addaction name="actionTile"/>
+    <addaction name="actionCascade"/>
+    <addaction name="actionMaximizeWindow"/>
+    <addaction name="actionNormalWindow"/>
+    <addaction name="actionMinimizeWindow"/>
+    <addaction name="separator"/>
+    <addaction name="actionNext"/>
+    <addaction name="actionPrev"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuPlugins"/>
    <addaction name="menuReports"/>
    <addaction name="menuWindows"/>
+   <addaction name="menuWindow"/>
    <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -369,6 +379,32 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionCascade">
+   <property name="text">
+    <string>Cascade Windows</string>
+   </property>
+  </action>
+  <action name="actionMaximizeWindow">
+   <property name="text">
+    <string>Maximize</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Up</string>
+   </property>
+  </action>
+  <action name="actionNormalWindow">
+   <property name="text">
+    <string>Restore</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Down</string>
+   </property>
+  </action>
+  <action name="actionMinimizeWindow">
+   <property name="text">
+    <string>Minimize</string>
    </property>
   </action>
  </widget>
