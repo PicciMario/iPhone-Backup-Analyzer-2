@@ -583,7 +583,9 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionTile.triggered.connect(self.tileWindow)
 		
 		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
+		self.ui.actionToggleLeft.triggered.connect(self.toggleLeft)
 		self.showRightSidebar = True
+		self.showLeftSidebar = True
 		
 		# show about window on startup
 		self.about()
@@ -601,7 +603,21 @@ class IPBA2(QtGui.QMainWindow):
 			self.showRightSidebar = True
 			for sidebarObject in sidebarObjects:
 				sidebarObject.show()			
-		
+
+	# toggle left sidebar
+	def toggleLeft(self):
+
+		sidebarObjects = [self.ui.backupInfoText, self.ui.fileTree, self.ui.label, self.ui.label_2, self.ui.label_3]
+
+		self.showLeftSidebar = not self.showLeftSidebar
+		if self.showLeftSidebar:
+			for sidebarObject in sidebarObjects:
+				sidebarObject.show()
+		else:
+			for sidebarObject in sidebarObjects:
+				sidebarObject.hide()
+
+
 
 	def about(self):
 	

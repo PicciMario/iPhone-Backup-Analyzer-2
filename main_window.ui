@@ -234,6 +234,7 @@
     <addaction name="actionNext"/>
     <addaction name="actionTile"/>
     <addaction name="separator"/>
+    <addaction name="actionToggleLeft"/>
     <addaction name="actionToggleRight"/>
    </widget>
    <addaction name="menuFile"/>
@@ -331,12 +332,18 @@
    </property>
   </action>
   <action name="actionToggleRight">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/icons/images/rightSideBar.png</normaloff>:/icons/images/rightSideBar.png</iconset>
    </property>
    <property name="text">
-    <string>Toggle right sidebar</string>
+    <string>File Information Bar</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
@@ -348,6 +355,20 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionToggleLeft">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Filesystem Bar</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
    </property>
   </action>
  </widget>
