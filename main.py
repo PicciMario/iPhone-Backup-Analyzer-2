@@ -42,6 +42,7 @@ import biplist, plistlib
 
 # PySide QT graphic libraries
 from PySide import QtCore, QtGui
+from PySide.QtCore import QSettings
 
 # UIs for base viewers
 from main_window import Ui_MainWindow
@@ -566,9 +567,13 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.imagePreviewLabel.hide()
 		
 		# File menu
-		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackup)
+		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackupGUI)
 		QtCore.QObject.connect(self.ui.menu_closearchive, QtCore.SIGNAL("triggered(bool)"), self.closeBackup)
 		QtCore.QObject.connect(self.ui.menu_quit, QtCore.SIGNAL("triggered(bool)"), self.quitApp)
+		self.ui.separatorMRUList.setSeparator(True)
+		self.mru_list = list()
+		self.mruLoadList()
+		self.mruUpdateFileMenu()
 		
 		# About menu
 		QtCore.QObject.connect(self.ui.actionAbout, QtCore.SIGNAL("triggered(bool)"), self.about)
@@ -586,6 +591,11 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionNormalWindow.triggered.connect(self.normalWindow)
 		self.ui.actionMinimizeWindow.triggered.connect(self.minimizeWindow)
 		self.ui.actionViewAsTabs.triggered.connect(self.viewAsTabs)
+
+		# Connect the "Window" menu to show active sub-windows.
+		self.updateWindowMenu()
+		self.ui.menuWindow.aboutToShow.connect(self.updateWindowMenu)
+		self.ui.separatorWindowList.setSeparator(True)
 		
 		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
 		self.ui.actionToggleLeft.triggered.connect(self.toggleLeft)
@@ -595,6 +605,7 @@ class IPBA2(QtGui.QMainWindow):
 		
 		# show about window on startup
 		self.about()
+
 		
 	# toggle right sidebar
 	def toggleRight(self):
@@ -622,6 +633,39 @@ class IPBA2(QtGui.QMainWindow):
 		else:
 			for sidebarObject in sidebarObjects:
 				sidebarObject.hide()
+
+	def updateWindowMenu(self):
+		"""
+		Update the "Window" menus - with the list of active MDI sub windows.
+		"""
+		# Clear the current menu items of window titles
+		# (all menu items after the separator)
+		items = self.ui.menuWindow.actions()
+		found_separator = False
+		for i, item in enumerate(items):
+			if found_separator:
+				self.ui.menuWindow.removeAction(item)
+			if (not found_separator) and item==self.ui.separatorWindowList:
+				found_separator = True
+
+		# Re-create list Windows
+		# (Menu item for each MDI Sub window)
+		windows = self.ui.mdiArea.subWindowList()
+		self.ui.separatorWindowList.setVisible(len(windows) != 0)
+
+		for i, window in enumerate(windows):
+			child = window.widget()
+
+			text = "%d %s" % (i + 1, child.windowTitle())
+			if i < 9:
+				text = '&' + text
+
+			action = self.ui.menuWindow.addAction(text)
+			action.setCheckable(True)
+			action.setChecked(window is self.ui.mdiArea.currentSubWindow())
+			#NOTE: the "w=window" trick is used to work-around the lambda evaluation limitation,
+			#      see here: http://stackoverflow.com/a/1107260
+			action.triggered.connect(lambda w=window: self.ui.mdiArea.setActiveSubWindow(w))
 
 
 
@@ -812,7 +856,10 @@ class IPBA2(QtGui.QMainWindow):
 		msgBox.exec_()		
 		
 		
-	def openBackup(self):
+	def openBackupGUI(self):
+		"""
+		Present the "Select Directory" dialog to the user, then open the iOS backup.
+		"""
 		newBackupPath = QtGui.QFileDialog.getExistingDirectory(self, "Open Directory", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
 		
 		if (newBackupPath == None):
@@ -820,7 +867,10 @@ class IPBA2(QtGui.QMainWindow):
 
 		if (len(newBackupPath) == 0):
 			return
-		
+
+		self.openBackup(newBackupPath)
+
+	def openBackup(self, newBackupPath):
 		self.backup_path = newBackupPath
 		
 		# clear main UI
@@ -1637,8 +1687,17 @@ class IPBA2(QtGui.QMainWindow):
 
 		
 		deviceinfo = plistutils.deviceInfo(os.path.join(self.backup_path, "Info.plist"))
+		device_display_name = "Unknown"
+		device_type = "Unknown"
 		for element in deviceinfo.keys():
 			self.ui.backupInfoText.append("<strong>%s</strong>: %s"%(element, deviceinfo[element]))
+			if element == "Display Name":
+				device_display_name = deviceinfo[element]
+			if element == "Product Type":
+				device_type = deviceinfo[element]
+		device_type = self.getIDeviceProductName(device_type)
+		device_mru_name = "%s (%s)" % ( device_display_name, device_type )
+		self.mruAddArchive(device_mru_name, self.backup_path)
 		
 		textCursor = self.ui.backupInfoText.textCursor() 
 		textCursor.setPosition(0) 
@@ -1647,11 +1706,135 @@ class IPBA2(QtGui.QMainWindow):
 		# clear progressbar
 		progress.setValue(progress.maximum())
 
+	def mruAddArchive(self, description, path):
+		"""
+		Update the list of Most Recently Used archives, with a newly opened archive.
+
+		description = The "Display name" of the open archive (e.g. "MyPhone (iPhone3)")
+		path = The filesystem path of the archive.
+
+		The function updates the MRU list,
+		the application settings file, and the "File" Menu.
+		"""
+
+		# Remove the path, if it already exists
+		tmp = filter(lambda x: x[0] == path, self.mru_list)
+		if len(tmp)>0:
+			self.mru_list.remove(tmp[0])
+
+		# Add the new archive, to the beginning of the list
+		self.mru_list.insert(0, ( path, description ))
+
+		self.mruSaveList()
+		self.mruUpdateFileMenu()
+
+	def mruSaveList(self):
+		"""
+		Saves the list of MRU files to the application settings file.
+		"""
+		qs = QSettings()
+
+		qs.remove("mru")
+		qs.beginWriteArray("mru")
+		for i, m in enumerate(self.mru_list):
+			(path, description) = m
+			qs.setArrayIndex(i)
+			qs.setValue("path", path)
+			qs.setValue("description", description)
+		qs.endArray()
+
+	def mruLoadList(self):
+		"""
+		Loads the list of MRU files from the pplication settings file.
+		"""
+		self.mru_list = list()
+		qs = QSettings()
+
+		count = qs.beginReadArray("mru")
+		for i in range(count):
+			qs.setArrayIndex(i)
+			path = qs.value("path")
+			description = qs.value("description")
+			if os.path.exists(path):
+				self.mru_list.append((path,description))
+		qs.endArray()
+
+	def mruUpdateFileMenu(self):
+		"""
+		Updates the "File" menu, adds a menu item for
+		each item in the MRU list.
+		"""
+		# Clear the current menu items of MRU files
+		# (all menu items after the separator)
+		items = self.ui.menuFile.actions()
+		found_separator = False
+		for i, item in enumerate(items):
+			if found_separator:
+				self.ui.menuFile.removeAction(item)
+			if (not found_separator) and item==self.ui.separatorMRUList:
+				found_separator = True
+
+		# Re-create MRU list
+		# (Menu item for each MRU item)
+		self.ui.separatorMRUList.setVisible(len(self.mru_list) != 0)
+
+		for i, m in enumerate(self.mru_list):
+			(path, description) = m;
+
+			text = "%d %s" % (i + 1, description)
+			if i < 9:
+				text = '&' + text
+
+			action = self.ui.menuFile.addAction(text)
+			action.triggered.connect(lambda p=path: self.openBackup(p))
+
+	def getIDeviceProductName(self,product_type):
+		"""
+		Given an iDevice "Product Type" (e.g. "iPhone3,1") returns the product name (e.g. "iPhone 4").
+		Returns "Unknown Model (type)" if the model is not recognized.
+		"""
+		types = { "iPad1,1":"iPad 1",
+				"iPad2,1":"iPad 2",
+				"iPad2,2":"iPad 2",
+				"iPad2,3":"iPad 2",
+				"iPad2,4":"iPad 2",
+				"iPad3,1":"iPad 3",
+				"iPad3,3":"iPad 3",
+				"iPad3,2":"iPad 3",
+				"iPad3,4":"iPad 4",
+				"iPad2,5":"iPad mini",
+				"iPad2,6":"iPad mini",
+				"iPad2,7":"iPad mini",
+				"iPhone1,1":"iPhone 1",
+				"iPhone1,2":"iPhone 3G",
+				"iPhone2,1":"iPhone 3GS",
+				"iPhone3,1":"iPhone 4",
+				"iPhone3,3":"iPhone 4",
+				"iPhone4,1":"iPhone 4S",
+				"iPhone5,1":"iPhone 5",
+				"iPhone5,2":"iPhone 5",
+				"iPhone5,1":"iPhone 5",
+				"iPhone6,1":"iPhone 5S",
+				"iPod1,1":"iPod touch 1",
+				"iPod2,1":"iPod touch 2",
+				"iPod3,1":"iPod touch 3",
+				"iPod4,1":"iPod touch 4",
+				"iPod5,1":"iPod touch 5" }
+
+		if product_type in types:
+			return types[product_type]
+
+		return "Unknown Model (%s)" % (product_type)
+
+
 # ------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 
 	app = QtGui.QApplication(sys.argv)
+	app.setOrganizationName("IPBA2");
+	app.setOrganizationDomain("ipbackupanalyzer.com");
+	app.setApplicationName("iPhoneBackupAnalyzer2");
 	main_ipba2_window = IPBA2()
 	main_ipba2_window.show()
 	sys.exit(app.exec_())
