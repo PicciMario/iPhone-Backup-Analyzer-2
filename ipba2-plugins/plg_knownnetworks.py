@@ -1,7 +1,7 @@
 from PySide import QtCore, QtGui
 from knownnetworks_ui import Ui_KnownNetworks
 
-import os, sqlite3, plistlib
+import os, sqlite3, plistlib, sys
 from datetime import datetime
 
 PLUGIN_NAME = "Known WiFi Networks"
@@ -30,7 +30,7 @@ class KnownNetworksWidget(QtGui.QWidget):
 		
 		#self.ui.listTree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 		#QtCore.QObject.connect(self.ui.listTree, QtCore.SIGNAL('customContextMenuRequested(QPoint)'), self.ctxMenu)
-		
+
 		if (daemon == False):
 		
 			self.ui.networksTree.setColumnHidden(0,True)
@@ -45,13 +45,27 @@ class KnownNetworksWidget(QtGui.QWidget):
 		
 		index = 0
 		for network in self.networks:
-		
 			element = QtGui.QTreeWidgetItem(None)
 			element.setText(0, str(index))			
-			element.setText(1, network['SSID'])			
+			element.setText(1, self.getNetworkName(network))
 			self.ui.networksTree.addTopLevelItem(element)
 			
 			index += 1
+
+	def getNetworkName(self, network):
+		"""
+		Given a DICT/Plist of "known networks", returns a descriptive name of the network.
+
+		Typically, this will be the SSID.
+		But some entries do not have SSID (possibly related to Enterprise networks?).
+		If so, try other keys.
+		"""
+		# Observed keys with some decsriptive identifiers.
+		keys = [ 'SSID', 'PayloadOrganization', 'SSID_STR', 'PayloadIdentifier', 'BSSID' ]
+		for k in keys:
+			if k in network:
+				return network[k]
+		return "(Unknown Network)"
 
 
 	def onTreeClick(self):
