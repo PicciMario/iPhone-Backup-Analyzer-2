@@ -226,7 +226,7 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
-   <widget class="QMenu" name="menuWindows">
+   <widget class="QMenu" name="menuView">
     <property name="title">
      <string>&amp;View</string>
     </property>
@@ -247,11 +247,12 @@
     <addaction name="separator"/>
     <addaction name="actionNext"/>
     <addaction name="actionPrev"/>
+    <addaction name="separatorWindowList"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuPlugins"/>
    <addaction name="menuReports"/>
-   <addaction name="menuWindows"/>
+   <addaction name="menuView"/>
    <addaction name="menuWindow"/>
    <addaction name="menu"/>
   </widget>
@@ -418,6 +419,11 @@
    </property>
    <property name="text">
     <string>&amp;View as Tabs</string>
+   </property>
+  </action>
+  <action name="separatorWindowList">
+   <property name="text">
+    <string>WindowListSeparator</string>
    </property>
   </action>
  </widget>

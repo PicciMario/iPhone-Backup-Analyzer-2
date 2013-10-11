@@ -586,6 +586,11 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionNormalWindow.triggered.connect(self.normalWindow)
 		self.ui.actionMinimizeWindow.triggered.connect(self.minimizeWindow)
 		self.ui.actionViewAsTabs.triggered.connect(self.viewAsTabs)
+
+		# Connect the "Window" menu to show active sub-windows.
+		self.updateWindowMenu()
+		self.ui.menuWindow.aboutToShow.connect(self.updateWindowMenu)
+		self.ui.separatorWindowList.setSeparator(True)
 		
 		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
 		self.ui.actionToggleLeft.triggered.connect(self.toggleLeft)
@@ -595,6 +600,7 @@ class IPBA2(QtGui.QMainWindow):
 		
 		# show about window on startup
 		self.about()
+
 		
 	# toggle right sidebar
 	def toggleRight(self):
@@ -622,6 +628,39 @@ class IPBA2(QtGui.QMainWindow):
 		else:
 			for sidebarObject in sidebarObjects:
 				sidebarObject.hide()
+
+	def updateWindowMenu(self):
+		"""
+		Update the "Window" menus - with the list of active MDI sub windows.
+		"""
+		# Clear the current menu items of window titles
+		# (all menu items after the separator)
+		items = self.ui.menuWindow.actions()
+		found_separator = False
+		for i, item in enumerate(items):
+			if found_separator:
+				self.ui.menuWindow.removeAction(item)
+			if (not found_separator) and item==self.ui.separatorWindowList:
+				found_separator = True
+
+		# Re-create list Windows
+		# (Menu item for each MDI Sub window)
+		windows = self.ui.mdiArea.subWindowList()
+		self.ui.separatorWindowList.setVisible(len(windows) != 0)
+
+		for i, window in enumerate(windows):
+			child = window.widget()
+
+			text = "%d %s" % (i + 1, child.windowTitle())
+			if i < 9:
+				text = '&' + text
+
+			action = self.ui.menuWindow.addAction(text)
+			action.setCheckable(True)
+			action.setChecked(window is self.ui.mdiArea.currentSubWindow())
+			#NOTE: the "w=window" trick is used to work-around the lambda evaluation limitation,
+			#      see here: http://stackoverflow.com/a/1107260
+			action.triggered.connect(lambda w=window: self.ui.mdiArea.setActiveSubWindow(w))
 
 
 
