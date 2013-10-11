@@ -198,25 +198,27 @@
      <x>0</x>
      <y>0</y>
      <width>1120</width>
-     <height>21</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuPlugins">
     <property name="title">
-     <string>Plugins</string>
+     <string>&amp;Plugins</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuReports">
     <property name="title">
-     <string>Reports</string>
+     <string>&amp;Reports</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="menu_openarchive"/>
     <addaction name="menu_closearchive"/>
+    <addaction name="separator"/>
+    <addaction name="menu_quit"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
@@ -226,18 +228,31 @@
    </widget>
    <widget class="QMenu" name="menuWindows">
     <property name="title">
-     <string>View</string>
+     <string>&amp;View</string>
     </property>
-    <addaction name="actionPrev"/>
-    <addaction name="actionNext"/>
-    <addaction name="actionTile"/>
-    <addaction name="separator"/>
+    <addaction name="actionToggleLeft"/>
     <addaction name="actionToggleRight"/>
+   </widget>
+   <widget class="QMenu" name="menuWindow">
+    <property name="title">
+     <string>&amp;Window</string>
+    </property>
+    <addaction name="actionTile"/>
+    <addaction name="actionCascade"/>
+    <addaction name="actionMaximizeWindow"/>
+    <addaction name="actionNormalWindow"/>
+    <addaction name="actionMinimizeWindow"/>
+    <addaction name="separator"/>
+    <addaction name="actionViewAsTabs"/>
+    <addaction name="separator"/>
+    <addaction name="actionNext"/>
+    <addaction name="actionPrev"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuPlugins"/>
    <addaction name="menuReports"/>
    <addaction name="menuWindows"/>
+   <addaction name="menuWindow"/>
    <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -266,7 +281,7 @@
      <normaloff>:/icons/images/next.png</normaloff>:/icons/images/next.png</iconset>
    </property>
    <property name="text">
-    <string>Next Window</string>
+    <string>&amp;Next Window</string>
    </property>
    <property name="toolTip">
     <string>Next window</string>
@@ -281,7 +296,7 @@
      <normaloff>:/icons/images/prev.png</normaloff>:/icons/images/prev.png</iconset>
    </property>
    <property name="text">
-    <string>Previous Window</string>
+    <string>&amp;Previous Window</string>
    </property>
    <property name="toolTip">
     <string>Previous window</string>
@@ -296,7 +311,7 @@
      <normaloff>:/icons/images/tile.png</normaloff>:/icons/images/tile.png</iconset>
    </property>
    <property name="text">
-    <string>Tile Windows</string>
+    <string>&amp;Tile Windows</string>
    </property>
    <property name="toolTip">
     <string>Tile windows</string>
@@ -308,7 +323,10 @@
      <normaloff>:/icons/images/open.png</normaloff>:/icons/images/open.png</iconset>
    </property>
    <property name="text">
-    <string>Open archive</string>
+    <string>&amp;Open archive</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
    </property>
   </action>
   <action name="menu_closearchive">
@@ -317,7 +335,7 @@
      <normaloff>:/icons/images/close.png</normaloff>:/icons/images/close.png</iconset>
    </property>
    <property name="text">
-    <string>Close archive</string>
+    <string>&amp;Close archive</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -326,15 +344,80 @@
    </property>
   </action>
   <action name="actionToggleRight">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/icons/images/rightSideBar.png</normaloff>:/icons/images/rightSideBar.png</iconset>
    </property>
    <property name="text">
-    <string>Toggle right sidebar</string>
+    <string>File &amp;Information Bar</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="menu_quit">
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionToggleLeft">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Filesystem Bar</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionCascade">
+   <property name="text">
+    <string>&amp;Cascade Windows</string>
+   </property>
+  </action>
+  <action name="actionMaximizeWindow">
+   <property name="text">
+    <string>Ma&amp;ximize</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Up</string>
+   </property>
+  </action>
+  <action name="actionNormalWindow">
+   <property name="text">
+    <string>&amp;Restore</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Down</string>
+   </property>
+  </action>
+  <action name="actionMinimizeWindow">
+   <property name="text">
+    <string>Minimi&amp;ze</string>
+   </property>
+  </action>
+  <action name="actionViewAsTabs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;View as Tabs</string>
    </property>
   </action>
  </widget>

@@ -568,6 +568,7 @@ class IPBA2(QtGui.QMainWindow):
 		# File menu
 		QtCore.QObject.connect(self.ui.menu_openarchive, QtCore.SIGNAL("triggered(bool)"), self.openBackup)
 		QtCore.QObject.connect(self.ui.menu_closearchive, QtCore.SIGNAL("triggered(bool)"), self.closeBackup)
+		QtCore.QObject.connect(self.ui.menu_quit, QtCore.SIGNAL("triggered(bool)"), self.quitApp)
 		
 		# About menu
 		QtCore.QObject.connect(self.ui.actionAbout, QtCore.SIGNAL("triggered(bool)"), self.about)
@@ -580,9 +581,17 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.actionNext.triggered.connect(self.nextWindow)
 		self.ui.actionPrev.triggered.connect(self.prevWindow)
 		self.ui.actionTile.triggered.connect(self.tileWindow)
+		self.ui.actionCascade.triggered.connect(self.cascadeWindow)
+		self.ui.actionMaximizeWindow.triggered.connect(self.maximizeWindow)
+		self.ui.actionNormalWindow.triggered.connect(self.normalWindow)
+		self.ui.actionMinimizeWindow.triggered.connect(self.minimizeWindow)
+		self.ui.actionViewAsTabs.triggered.connect(self.viewAsTabs)
 		
 		self.ui.actionToggleRight.triggered.connect(self.toggleRight)
+		self.ui.actionToggleLeft.triggered.connect(self.toggleLeft)
 		self.showRightSidebar = True
+		self.showLeftSidebar = True
+		self.viewWindowsAsTabs = False
 		
 		# show about window on startup
 		self.about()
@@ -600,7 +609,21 @@ class IPBA2(QtGui.QMainWindow):
 			self.showRightSidebar = True
 			for sidebarObject in sidebarObjects:
 				sidebarObject.show()			
-		
+
+	# toggle left sidebar
+	def toggleLeft(self):
+
+		sidebarObjects = [self.ui.backupInfoText, self.ui.fileTree, self.ui.label, self.ui.label_2, self.ui.label_3]
+
+		self.showLeftSidebar = not self.showLeftSidebar
+		if self.showLeftSidebar:
+			for sidebarObject in sidebarObjects:
+				sidebarObject.show()
+		else:
+			for sidebarObject in sidebarObjects:
+				sidebarObject.hide()
+
+
 
 	def about(self):
 	
@@ -827,6 +850,9 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileTree.clear()
 		self.ui.mdiArea.closeAllSubWindows()
 
+	def quitApp(self):
+		QtGui.QApplication.quit()
+
 
 	def nextWindow(self):
 		self.ui.mdiArea.activateNextSubWindow()
@@ -834,6 +860,20 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.mdiArea.activatePreviousSubWindow()
 	def tileWindow(self):
 		self.ui.mdiArea.tileSubWindows()
+	def cascadeWindow(self):
+		self.ui.mdiArea.cascadeSubWindows()
+	def maximizeWindow(self):
+		self.ui.mdiArea.currentSubWindow().showMaximized()
+	def normalWindow(self):
+		self.ui.mdiArea.currentSubWindow().showNormal()
+	def minimizeWindow(self):
+		self.ui.mdiArea.currentSubWindow().showMinimized()
+	def viewAsTabs(self):
+		self.viewWindowsAsTabs = not self.viewWindowsAsTabs
+		if self.viewWindowsAsTabs:
+			self.ui.mdiArea.setViewMode(self.ui.mdiArea.TabbedView)
+		else:
+			self.ui.mdiArea.setViewMode(self.ui.mdiArea.SubWindowView)
 
 	# builds context menu
 	def ctxMenu(self, pos):
