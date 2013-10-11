@@ -219,6 +219,7 @@
     <addaction name="menu_closearchive"/>
     <addaction name="separator"/>
     <addaction name="menu_quit"/>
+    <addaction name="separatorMRUList"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
@@ -424,6 +425,11 @@
   <action name="separatorWindowList">
    <property name="text">
     <string>WindowListSeparator</string>
+   </property>
+  </action>
+  <action name="separatorMRUList">
+   <property name="text">
+    <string>separatorMRUList</string>
    </property>
   </action>
  </widget>
