@@ -389,7 +389,7 @@ class SqliteWidget(QtGui.QWidget):
 				
 				recordCount = 0
 				try:
-					tempcur.execute("SELECT count(*) FROM %s" % table_name);
+					tempcur.execute("SELECT count(*) FROM ?", (table_name,))
 					elem_count = tempcur.fetchone()
 					recordCount = int(elem_count[0])
 	
@@ -1390,8 +1390,8 @@ class IPBA2(QtGui.QMainWindow):
 		self.ui.fileInfoText.append("<strong>Flag</strong>: " + item_flag)
 
 		# file properties (from properties table, which is data from mbdb file)
-		query = "SELECT property_name, property_val FROM properties WHERE file_id = %s" % item_id
-		self.cursor.execute(query)
+		query = "SELECT property_name, property_val FROM properties WHERE file_id = ?"
+		self.cursor.execute(query, (item_id,))
 		data = self.cursor.fetchall()
 		if (len(data) > 0):
 			self.ui.fileInfoText.append("")
@@ -1567,25 +1567,18 @@ class IPBA2(QtGui.QMainWindow):
 			# check if file has properties to store in the properties table
 			if (fileinfo['numprops'] > 0):
 		
-				query = "SELECT id FROM indice WHERE "
-				query += "domain = '%s' " % domain.replace("'", "''")
-				query += "AND fileid = '%s' " % fileinfo['fileID']
-				query += "LIMIT 1"
+				query = "SELECT id FROM indice WHERE domain = ? AND fileid = ? LIMIT 1;"
 				 
-				self.cursor.execute(query);
+				self.cursor.execute(query, (domain.replace("'", "''"), fileinfo['fileID']))
 				id = self.cursor.fetchall()
 				
 				if (len(id) > 0):
 					index = id[0][0]
 					properties = fileinfo['properties']
-					for property in properties.keys():
-						query = "INSERT INTO properties(file_id, property_name, property_val) VALUES (";
-						query += "'%i'," % index
-						query += "'%s'," % property
-						query += "'%s'" % self.hex2nums(properties[property]).replace("'", "''")
-						query += ");"
-						
-						self.cursor.execute(query);
+
+					query = "INSERT INTO properties(file_id, property_name, property_val) VALUES (?, ?, ?);"
+					rows = ((index, name, self.hex2nums(val)) for name, val in properties.items())
+					self.cursor.executemany(query, rows);
 			
 				#print("File: %s, properties: %i"%(domain + ":" + filepath + "/" + filename, fileinfo['numprops']))
 				#print(fileinfo['properties'])
@@ -1595,6 +1588,8 @@ class IPBA2(QtGui.QMainWindow):
 			if (items%10 == 0):
 				progress.setValue(items/10)
 
+		self.cursor.execute('CREATE INDEX indice_domain_path on indice (domain_type, domain, file_path);')
+		self.cursor.execute('CREATE INDEX properties_file_id on properties (file_id);')
 		database.commit() 
 		
 		# print banner
@@ -1629,8 +1624,8 @@ class IPBA2(QtGui.QMainWindow):
 			QtGui.QApplication.processEvents()
 			
 			# retrieve domains for the selected family
-			query = "SELECT DISTINCT(domain) FROM indice WHERE domain_type = \"%s\" ORDER BY domain" % domain_type
-			self.cursor.execute(query);
+			query = "SELECT DISTINCT(domain) FROM indice WHERE domain_type = ? ORDER BY domain"
+			self.cursor.execute(query, (domain_type,))
 			domain_names = self.cursor.fetchall()
 			
 			for domain_name_u in domain_names:
@@ -1643,8 +1638,8 @@ class IPBA2(QtGui.QMainWindow):
 					self.ui.fileTree.addTopLevelItem(newDomain)
 			
 				# retrieve paths for selected domain
-				query = "SELECT DISTINCT(file_path) FROM indice WHERE domain_type = \"%s\" AND domain = \"%s\" ORDER BY file_path" %(domain_type, domain_name)
-				self.cursor.execute(query)
+				query = "SELECT DISTINCT(file_path) FROM indice WHERE domain_type = ? AND domain = ? ORDER BY file_path"
+				self.cursor.execute(query, (domain_type, domain_name))
 				paths = self.cursor.fetchall()
 				
 				for path_u in paths:
@@ -1659,8 +1654,8 @@ class IPBA2(QtGui.QMainWindow):
 					self.ui.fileTree.addTopLevelItem(newPath)
 					
 					# retrieve files for selected path
-					query = "SELECT file_name, filelen, id, type FROM indice WHERE domain_type = \"%s\" AND domain = \"%s\" AND file_path = \"%s\" ORDER BY file_name" %(domain_type, domain_name, path)
-					self.cursor.execute(query)
+					query = "SELECT file_name, filelen, id, type FROM indice WHERE domain_type = ? AND domain = ? AND file_path = ? ORDER BY file_name"
+					self.cursor.execute(query, (domain_type, domain_name, path))
 					files = self.cursor.fetchall()
 					
 					for file in files:
