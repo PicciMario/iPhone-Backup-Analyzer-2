@@ -31,8 +31,8 @@ iPBAVersionDate = "mar 2013"
 
 # --- GENERIC IMPORTS -----------------------------------------------------------------------------
 
-import sys, sqlite3, time, datetime, os, hashlib, getopt, shutil, zipfile
-import mbdbdecoding, plistutils, magic, webbrowser, traceback
+import sys, sqlite3, datetime, os, hashlib, shutil, zipfile, collections, posixpath
+import mbdbdecoding, plistutils, magic, traceback
 
 # homemade library to build html reports
 import html_util
@@ -182,7 +182,6 @@ class HexWidget(QtGui.QWidget):
 		N=0; result=''
 		while src:
 			s,src = src[:length],src[length:]
-			hexa = ' '.join(["%02X"%ord(x) for x in s])
 			s = s.translate(self.FILTER)
 			N+=length
 			result += s
@@ -1270,17 +1269,8 @@ class IPBA2(QtGui.QMainWindow):
 		return data
 	
 	
-	FILTER=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
-	def hex2nums(self, src, length=8):
-		N=0; result=''
-		while src:
-		   s,src = src[:length],src[length:]
-		   hexa = ' '.join(["%02X"%ord(x) for x in s])
-		   s = s.translate(self.FILTER)
-		   N+=length
-		   result += (hexa + " ")
-		return result	
-
+	def hex2nums(self, src):
+		return ' '.join(["%02X"%ord(x) for x in src])
 
 	def getElementFromID(self, id):
 		query = "SELECT * FROM indice WHERE id = ?"
@@ -1442,27 +1432,15 @@ class IPBA2(QtGui.QMainWindow):
 		# if exists Manifest.mbdx, then iOS <= 4
 		iOSVersion = 5
 		mbdxPath = os.path.join(self.backup_path, "Manifest.mbdx")
+		mbdbPath = os.path.join(self.backup_path, "Manifest.mbdb")
 		if (os.path.exists(mbdxPath)):
 			iOSVersion = 4
-		
-		# decode Manifest files
-		mbdbPath = os.path.join(self.backup_path, "Manifest.mbdb")
-		if (os.path.exists(mbdbPath)):
+			mbdx = mbdbdecoding.process_mbdx_file(mbdxPath)
+		elif (os.path.exists(mbdbPath)):
 			mbdb = mbdbdecoding.process_mbdb_file(mbdbPath)
 		else:
-			#usage()
-			print("\nManifest.mbdb not found in path \"%s\". Are you sure this is a correct iOS backup dir?\n"%(self.backup_path))
+			print("\nManifest.mbdb/Manifest.mbdx not found in path \"%s\". Are you sure this is a correct iOS backup dir?\n"%(self.backup_path))
 			sys.exit(1)
-		
-		# decode mbdx file (only iOS 4)
-		if (iOSVersion == 4):
-			mbdxPath = os.path.join(self.backup_path, "Manifest.mbdx")
-			if (os.path.exists(mbdxPath)):
-				mbdx = mbdbdecoding.process_mbdx_file(mbdxPath)
-			else:
-				#usage()
-				print("\nManifest.mbdx not found in path \"%s\". Are you sure this is a correct iOS backup dir, and are you sure this is an iOS 4 backup?\n"%(self.backup_path))
-				sys.exit(1)	
 
 		# prepares DB
 		database = sqlite3.connect(':memory:') # Create a database file in memory
@@ -1521,7 +1499,7 @@ class IPBA2(QtGui.QMainWindow):
 					fileinfo['fileID'] = mbdx[offset]
 				else:
 					fileinfo['fileID'] = "<nofileID>"
-					print >> sys.stderr, "No fileID found for %s" % fileinfo_str(fileinfo)
+					print >> sys.stderr, "No fileID found for %s" % fileinfo['filename']
 			
 			# iOS 5 (no MBDX file, use SHA1 of complete file name)
 			elif (iOSVersion == 5):
@@ -1535,11 +1513,11 @@ class IPBA2(QtGui.QMainWindow):
 			elif (fileinfo['mode'] & 0xE000) == 0x4000: obj_type = 'd' # dir
 			
 			# separates domain type (AppDomain, HomeDomain, ...) from domain name
-			[domaintype, sep, domain] = fileinfo['domain'].partition('-');
+			domaintype, sep, domain = fileinfo['domain'].partition('-')
 			
 			# separates file name from file path
-			[filepath, sep, filename] = fileinfo['filename'].rpartition('/')
-			if (type == 'd'):
+			filepath, sep, filename = fileinfo['filename'].rpartition('/')
+			if (obj_type == 'd'):
 				filepath = fileinfo['filename']
 				filename = "";
 
@@ -1559,7 +1537,7 @@ class IPBA2(QtGui.QMainWindow):
 			query += "'%s'," 	% filepath.replace("'", "''")
 			query += "'%s'," 	% filename.replace("'", "''")
 			query += "'%s'," 	% fileinfo['linktarget']
-			query += "'%s'," 	% self.hex2nums(fileinfo['datahash']).replace("'", "''")
+			query += "'%s'," 	% self.hex2nums(fileinfo['datahash'])
 			query += "'%s'" 	% fileinfo['flag']
 			query += ");"
 			self.cursor.execute(query)
@@ -1631,56 +1609,73 @@ class IPBA2(QtGui.QMainWindow):
 			for domain_name_u in domain_names:
 				domain_name = str(domain_name_u[0])			
 				
-				newDomain = QtGui.QTreeWidgetItem(newDomainFamily)
-				newDomain.setText(0, domain_name)
-				
 				if (len(domain_names) > 1):
+					newDomain = QtGui.QTreeWidgetItem(newDomainFamily)
+					newDomain.setText(0, domain_name)
 					self.ui.fileTree.addTopLevelItem(newDomain)
+
+					rootNode = newDomain
+				else:
+					rootNode = newDomainFamily
 			
 				# retrieve paths for selected domain
-				query = "SELECT DISTINCT(file_path) FROM indice WHERE domain_type = ? AND domain = ? ORDER BY file_path"
+				query = "SELECT file_path, file_name, filelen, id, type FROM indice WHERE domain_type = ? AND domain = ? ORDER BY file_path, file_name"
 				self.cursor.execute(query, (domain_type, domain_name))
-				paths = self.cursor.fetchall()
-				
-				for path_u in paths:
-					path = str(path_u[0])
-					
-					if (len(domain_names) > 1):
-						newPath = QtGui.QTreeWidgetItem(newDomain)
-					else:
-						newPath = QtGui.QTreeWidgetItem(newDomainFamily)
-					
-					newPath.setText(0, path)
-					self.ui.fileTree.addTopLevelItem(newPath)
-					
-					# retrieve files for selected path
-					query = "SELECT file_name, filelen, id, type FROM indice WHERE domain_type = ? AND domain = ? AND file_path = ? ORDER BY file_name"
-					self.cursor.execute(query, (domain_type, domain_name, path))
-					files = self.cursor.fetchall()
-					
-					for file in files:
-						file_name = str(file[0].encode("utf-8"))
-						if (file[1]) < 1024:
-							file_dim = str(file[1]) + " b"
-						else:
-							file_dim = str(file[1] / 1024) + " kb"
-						file_id = int(file[2])
-						file_type = str(file[3])
+				nodes = self.cursor.fetchall()
 
+				pathToNode = {'': rootNode}
+
+				for nodeData in nodes:
+					path = str(nodeData[0])
+					
+					# finding parent directory 
+					lookup = path
+					missing = collections.deque()
+					dirNode = None
+					while dirNode is None:
+						dirNode = pathToNode.get(lookup, None)
+
+						if dirNode is None:
+							lookup, sep, component = lookup.rpartition('/')
+							missing.appendleft(component)
+
+					# creating parent directory if neccesary
+					for component in missing:
+						newPath = QtGui.QTreeWidgetItem(dirNode)
+						newPath.setText(0, component)
+						newPath.setToolTip(0, component)
+						self.ui.fileTree.addTopLevelItem(newPath)
+
+						dirNode = newPath
+						lookup = posixpath.join(lookup, component)
+						pathToNode[lookup] = newPath
+
+					file_name = str(nodeData[1].encode("utf-8"))
+					if (nodeData[2]) < 1024:
+						file_dim = str(nodeData[2]) + " b"
+					else:
+						file_dim = str(nodeData[2] / 1024) + " kb"
+					file_id = int(nodeData[3])
+					file_type = str(nodeData[4])
+
+					if file_type == 'd':
+						newFile = dirNode
+					else:
 						newFile = QtGui.QTreeWidgetItem(newPath)
+						self.ui.fileTree.addTopLevelItem(newFile)
+
 						newFile.setText(0, file_name)
 						newFile.setToolTip(0, file_name)
-						newFile.setText(1, file_type)
 						newFile.setText(2, str(file_dim))
-						newFile.setText(3, str(file_id))
-						self.ui.fileTree.addTopLevelItem(newFile)
-						
-						# manage progress bar
-						items = items + 1
-						if (items%10 == 0):
-							progress.setValue(items/10)
 
-		
+					newFile.setText(1, file_type)
+					newFile.setText(3, str(file_id))
+						
+					# manage progress bar
+					items = items + 1
+					if (items%10 == 0):
+						progress.setValue(items/10)
+
 		deviceinfo = plistutils.deviceInfo(os.path.join(self.backup_path, "Info.plist"))
 		device_display_name = "Unknown"
 		device_type = "Unknown"
