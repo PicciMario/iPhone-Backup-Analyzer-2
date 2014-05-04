@@ -1104,6 +1104,8 @@ class IPBA2(QtGui.QMainWindow):
 		subWindow.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 		self.ui.mdiArea.addSubWindow(subWindow)
 		subWindow.show()
+
+	lastExportPath = ""
 			
 	def exportSelectedFile(self):
 	
@@ -1121,9 +1123,10 @@ class IPBA2(QtGui.QMainWindow):
 			realFileName = os.path.join(self.backup_path, element['fileid'])
 			newName = element['file_name']
 	
-		exportPath = QtGui.QFileDialog.getExistingDirectory(self, "Select export path", "", QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
+		exportPath = QtGui.QFileDialog.getExistingDirectory(self, "Select export path", self.lastExportPath, QtGui.QFileDialog.ShowDirsOnly | QtGui.QFileDialog.DontResolveSymlinks);
 		if (len(exportPath) == 0): return
 		
+		self.lastExportPath = exportPath
 		try:
 			shutil.copy(realFileName, os.path.join(exportPath, newName))
 			QtGui.QMessageBox.about(self, "Confirm", "File exported in %s."%exportPath)
