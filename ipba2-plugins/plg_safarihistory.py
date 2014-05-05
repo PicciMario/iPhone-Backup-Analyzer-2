@@ -23,7 +23,11 @@ class SafariHistoryWidget(QtGui.QWidget):
 		self.cursor = cursor
 		self.backup_path = path
 		
-		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(self.cursor, filename="History.plist", domaintype="HomeDomain", path="Library/Safari"))
+		filename = plugins_utils.realFileName(self.cursor, filename="History.plist", domaintype="HomeDomain", path="Library/Safari")
+		if filename == '':
+			filename = plugins_utils.realFileName(self.cursor, filename="History.plist", domaintype="AppDomain", path="Library/Safari", domain = "com.apple.mobilesafari")
+
+		self.filename = os.path.join(self.backup_path, filename)
 
 		if (not os.path.isfile(self.filename)):
 			raise Exception("Safari history file not found: \"%s\""%self.filename)

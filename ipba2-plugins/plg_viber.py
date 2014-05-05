@@ -59,7 +59,10 @@ class ViBrowserWidget(QtGui.QWidget):
 		self.cursor = cursor
 		self.backup_path = path
 		
-		self.fname_contacts = os.path.join(self.backup_path, plugins_utils.realFileName(self.cursor, filename="Contacts.data", domaintype="AppDomain"))
+		filename = plugins_utils.realFileName(self.cursor, filename="Contacts.data", domaintype="AppDomain", path="Documents", domain="com.viber")
+		if filename == '':
+			filename = plugins_utils.realFileName(self.cursor, filename="Contacts.data", domaintype="AppDomain")
+		self.fname_contacts = os.path.join(self.backup_path, filename)
 
 		# check if files exist
 		if (not os.path.isfile(self.fname_contacts)):
